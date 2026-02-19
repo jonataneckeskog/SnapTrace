@@ -20,22 +20,32 @@ public class BankService
     [SnapTraceContext] // 2. Context inclusion: Captures this field with every method call.
     private decimal _currentBalance;
 
-    [SnapTraceIgnore] // 3. Opts-out: This public method will NOT be traced.
+    private AccountService _accountService; // 3. Private method, opted out by default.
+
+    [SnapTraceIgnore] // 4. Opts-out: This public method will NOT be traced.
     public void Ping() { }
 
-    // 4. Traced by default. 'amount' is recorded, 'pin' is ignored/redacted.
+    // 5. Traced by default. 'amount' is recorded, 'pin' is ignored/redacted.
     public void Deposit([SnapTraceIgnore] string pin, decimal amount) 
     {
         CalculateInterest(); 
         SyncToDatabase();
     }
 
-    // 5. NOT traced: Private methods are ignored by default to reduce noise.
+    // 6. NOT traced: Private methods are ignored by default to reduce noise.
     private void CalculateInterest() { }
 
-    // 6. Explicitly traced: Opt-in required for private/internal methods.
+    // 7. Explicitly traced: Opt-in required for private/internal methods.
     [SnapTrace] 
     private void SyncToDatabase() { }
+
+    // 8. Capture the full parameters and return value states, in this case only AccountId
+    //    since AccountService is ignored.
+    [SnapTraceDeep, return: SnapTraceIgnore]
+    public AccountService getAccountService(AccountId accountId)
+    {
+        return _accountService;
+    }
 }
 
 ```
@@ -46,10 +56,12 @@ public class BankService
 
 Use these to instruct the Source Generator on what to intercept and record.
 
-* **`[SnapTrace]` (Class):** Opts the class into recording. Records all public methods by default.
+* **`[SnapTrace]` (Class/Method):** Opts the class into recording. Records all public methods by default.
 * **`[SnapTrace]` (Method):** Explicitly opts a method into recording (required for capturing private/internal logic).
 * **`[SnapTraceIgnore]` (Method):** Opts a specific public method out of a class-wide `[SnapTrace]`.
-* **`[SnapTraceIgnore]` (Parameter):** Redacts sensitive data from the trace buffer, preventing PII leaks.
+* **`[SnapTraceIgnore]` (Parameter/Return):** Redacts sensitive data from the trace buffer, preventing PII leaks.
+* **`[SnapTraceDeep]`(Method):** Forces a deep copy of all parameters and returns values to be stored in the trace buffer. Each value which is logged with SnapDeep is required to implement .Clone().
+* **`[SnapTraceDeep]`(Parameter/Return):** Specific opt-ins for deep copying parameters or return values.
 * **`[SnapTraceContext]` (Property/Field):** Captures the value of this class-level variable alongside every intercepted method call.
 
 > **Note on Local Variables:** Because interceptors wrap method *calls* and cannot see inside method *bodies*, local variables cannot use attributes. To capture local state mid-method, use the manual inline call: `SnapTraceObserver.SnapLocal(new { x, y });`
