@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace SnapTrace.Core.Attributes;
 
 /// <summary>
@@ -7,5 +9,6 @@ namespace SnapTrace.Core.Attributes;
 /// When applied to a parameter, it redacts the value from the trace log (e.g., for PII).
 /// </para>
 /// </summary>
+[Conditional("SNAPTRACE")]
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.ReturnValue)]
 public class SnapTraceIgnoreAttribute : Attribute { }

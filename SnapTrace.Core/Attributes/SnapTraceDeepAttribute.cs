@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace SnapTrace.Core.Attributes;
 
 /// <summary>
@@ -8,5 +10,6 @@ namespace SnapTrace.Core.Attributes;
 /// When applied to a parameter or return value, it saves only those specific values.
 /// </para>
 /// </summary>
+[Conditional("SNAPTRACE")]
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.ReturnValue)]
 public class SnapTraceDeepAttribute : Attribute { }
