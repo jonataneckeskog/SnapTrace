@@ -1,10 +1,12 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SnapTrace.Core.Runtime;
 
 /// <summary>
-/// Forces System.Text.Json to serialize 'object' properties using their actual runtime type.
+/// Forces System.Text.Json to serialize 'object' properties using their actual runtime type,
+/// degrading gracefully to string representations when standard serialization fails.
 /// </summary>
 internal class RuntimeTypeConverter : JsonConverter<object>
 {
@@ -13,9 +15,14 @@ internal class RuntimeTypeConverter : JsonConverter<object>
 
     public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
     {
-        var type = value.GetType();
+        if (value is null)
+        {
+            writer.WriteNullValue();
+            return;
+        }
 
-        // Safeguard to prevent infinite recursion if the object is literally a raw `new object()`
+        Type type = value.GetType();
+
         if (type == typeof(object))
         {
             writer.WriteStartObject();
@@ -23,16 +30,41 @@ internal class RuntimeTypeConverter : JsonConverter<object>
             return;
         }
 
+        if (typeof(Delegate).IsAssignableFrom(type))
+        {
+            writer.WriteStringValue($"[Delegate: {type.Name}]");
+            return;
+        }
+
+        if (typeof(MemberInfo).IsAssignableFrom(type) || typeof(Type).IsAssignableFrom(type))
+        {
+            writer.WriteStringValue($"[Reflection: {value}]");
+            return;
+        }
+
         try
         {
-            // Serialize using the actual runtime type (e.g., Customer, String, Exception)
-            JsonSerializer.Serialize(writer, value, type, options);
+            // Serialize to a temporary, in-memory JSON document first.
+            // If this crashes midway, the main 'writer' remains completely untouched and clean.
+            using var doc = JsonSerializer.SerializeToDocument(value, type, options);
+            doc.WriteTo(writer);
         }
         catch
         {
-            // If it's a completely unserializable type (like a Reflection pointer or an open Stream),
-            // gracefully degrade to its string representation so the trace doesn't crash.
-            writer.WriteStringValue(value.ToString());
+            WriteSafeFallback(writer, value);
+        }
+    }
+
+    private void WriteSafeFallback(Utf8JsonWriter writer, object value)
+    {
+        try
+        {
+            string stringValue = value.ToString() ?? "null";
+            writer.WriteStringValue(stringValue);
+        }
+        catch
+        {
+            writer.WriteStringValue($"[Unserializable Object of type {value.GetType().Name}]");
         }
     }
 }
