@@ -11,6 +11,7 @@ public class ClassInterceptorBuilder
 
     private readonly HashSet<string> _contextMembers = new();
     private readonly List<MethodInterceptorBuilder> _methods = new();
+    private bool _isUnsafe = false;
 
     public ClassInterceptorBuilder(string className, bool isStatic)
     {
@@ -18,9 +19,10 @@ public class ClassInterceptorBuilder
         _isStatic = isStatic;
     }
 
-    public ClassInterceptorBuilder WithMethod(string name, Action<MethodInterceptorBuilder> config, bool isStatic, bool isAsync)
+    public ClassInterceptorBuilder WithMethod(string name, MethodSituation situation, Action<MethodInterceptorBuilder> config)
     {
-        var mb = new MethodInterceptorBuilder(_className, name, isStatic, isAsync);
+        var mb = new MethodInterceptorBuilder(_className, name, situation);
+
         config(mb);
         _methods.Add(mb);
         return this;
@@ -44,8 +46,10 @@ public class ClassInterceptorBuilder
 
         var methodsSource = string.Join("\n", _methods.Select(m => m.InternalBuild()));
 
+        var unsafeKeyword = _isUnsafe ? "unsafe " : "";
+
         return $@"
-public static class {_className}_Interceptors
+public {unsafeKeyword}static class {_className}_Interceptors
 {{
     {helperMethod}
     {methodsSource}

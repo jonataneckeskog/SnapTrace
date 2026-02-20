@@ -6,77 +6,50 @@ namespace SnapTrace.Generators.Builders;
 
 public class MethodInterceptorBuilder
 {
+    // Builder data
+    private (string Type, bool IsVoid, bool DeepCopy, bool Redacted) _return = ("void", true, false, false);
+    private readonly List<(string Name, string Type, string Modifier, bool IsParams, bool DeepCopy, bool Redacted)> _params = new();
     private readonly List<string> _locations = new();
-    private readonly List<(string Name, string Type, bool Redacted, bool DeepCopy)> _params = new();
 
     // Method Metadata
-    private string _methodName = "";
-    private string _className = "";
-    private string _returnType = "void";
-    private bool _isVoid = true;
-    private bool _isStatic = false;
-    private bool _isAsync = false;
+    private readonly string _methodName;
+    private readonly string _className;
+    private string _typeParameters;
+    private string _whereConstraints;
+    private MethodSituation _situation;
 
-    // Policy Overrides
-    private bool _methodDeepCopy = false;
-    private bool _methodRedacted = false;
-    private bool _returnDeepCopy = false;
-    private bool _returnRedacted = false;
-    private readonly List<string> _contextMembers = new();
-
-    public MethodInterceptorBuilder(string className, string methodName, bool isStatic, bool isAsync)
+    public MethodInterceptorBuilder(string className, string methodName, MethodSituation situation)
     {
         _className = className;
         _methodName = methodName;
-        _isStatic = isStatic;
+        _situation = situation;
     }
 
-    public MethodInterceptorBuilder WithReturn(string type, bool isVoid = false)
+    // --- Standard additions ---
+
+    public MethodInterceptorBuilder WithReturn(string type = "void", bool isVoid = true, bool deepCopy = false, bool redacted = false)
     {
-        _returnType = type;
-        _isVoid = isVoid;
+        if (isVoid) return this;
+
+        _return = (type, isVoid, deepCopy, redacted);
         return this;
     }
 
-    public MethodInterceptorBuilder AddParameter(string name, string type)
+    public MethodInterceptorBuilder WithTypeParameters(string typeParameters)
     {
-        _params.Add((name, type, false, false));
+        _typeParameters = typeParameters;
         return this;
     }
 
-    // --- Policy Refinements ---
-
-    public MethodInterceptorBuilder RedactParameter(string name)
+    public MethodInterceptorBuilder WithWhereConstraints(string whereConstraints)
     {
-        var idx = _params.FindIndex(p => p.Name == name);
-        if (idx != -1) _params[idx] = _params[idx] with { Redacted = true };
+        _whereConstraints = whereConstraints;
         return this;
     }
 
-    public MethodInterceptorBuilder DeepCopyParameter(string name)
+    public MethodInterceptorBuilder WithParameter(string name, string type, string modifier = "", bool isParams = false, bool deepCopy = false, bool redacted = false)
     {
-        var idx = _params.FindIndex(p => p.Name == name);
-        if (idx != -1) _params[idx] = _params[idx] with { DeepCopy = true };
-        return this;
-    }
-
-    public MethodInterceptorBuilder WithMethodPolicies(bool deepCopy, bool redacted)
-    {
-        _methodDeepCopy = deepCopy;
-        _methodRedacted = redacted;
-        return this;
-    }
-
-    public MethodInterceptorBuilder WithReturnPolicies(bool deepCopy, bool redacted)
-    {
-        _returnDeepCopy = deepCopy;
-        _returnRedacted = redacted;
-        return this;
-    }
-
-    public MethodInterceptorBuilder CaptureContext(string memberName)
-    {
-        _contextMembers.Add(memberName);
+        _params.Add((name, type, modifier, isParams, deepCopy, redacted));
         return this;
     }
 
@@ -90,40 +63,6 @@ public class MethodInterceptorBuilder
 
     internal string InternalBuild()
     {
-        var signatureParams = (_isStatic ? "" : $"this {_className} instance") +
-            (_params.Any() && !_isStatic ? ", " : "") +
-            string.Join(", ", _params.Select(p => $"{p.Type} {p.Name}"));
-
-        var callDataElements = _params.Select(p =>
-            p.Redacted ? "\"REDACTED\"" :
-            (p.DeepCopy || _methodDeepCopy) ? $"(object?){p.Name}.Clone()" : $"(object?){p.Name}");
-
-        var callDataArray = _params.Any() ? $"new object?[] {{ {string.Join(", ", callDataElements)} }}" : "global::System.Array.Empty<object?>()";
-        var contextObj = _contextMembers.Any() ? $"new {{ {string.Join(", ", _contextMembers.Select(m => $"{m} = instance.{m}"))} }}" : "null";
-        var callTarget = _isStatic ? _className : "instance";
-        var passThrough = string.Join(", ", _params.Select(p => p.Name));
-
-        string execution;
-        if (_isVoid)
-        {
-            execution = $@"{callTarget}.{_methodName}({passThrough});
-            global::SnapTrace.SnapTraceObserver.Record(new global::SnapTrace.Models.SnapEntry(""{_className}.{_methodName}"", null, {contextObj}, global::SnapTrace.Models.SnapStatus.Return));";
-        }
-        else
-        {
-            var logExpr = (_returnRedacted || _methodRedacted) ? "\"REDACTED\"" :
-                         (_returnDeepCopy || _methodDeepCopy) ? "result.Clone()" : "result";
-            execution = $@"var result = {callTarget}.{_methodName}({passThrough});
-            global::SnapTrace.SnapTraceObserver.Record(new global::SnapTrace.Models.SnapEntry(""{_className}.{_methodName}"", new object?[] {{ (object?){logExpr} }}, {contextObj}, global::SnapTrace.Models.SnapStatus.Return));
-            return result;";
-        }
-
-        return $@"
-    {string.Join("\n    ", _locations)}
-    public static {_returnType} Intercepted_{_className}_{_methodName}({signatureParams})
-    {{
-        global::SnapTrace.SnapTraceObserver.Record(new global::SnapTrace.Models.SnapEntry(""{_className}.{_methodName}"", {callDataArray}, {contextObj}, global::SnapTrace.Models.SnapStatus.Call));
-        {execution}
-    }}";
+        return $@"TODO";
     }
 }
