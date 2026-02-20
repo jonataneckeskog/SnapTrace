@@ -7,8 +7,7 @@ namespace SnapTrace.Core.Runtime;
 /// <param name="Method"></param>
 /// <param name="Args"></param>
 /// <param name="Context"></param>
-/// <param name="Result"></param>
-public readonly record struct SnapEntry(string Method, object? Args, object? Context, object? Result = null)
+public readonly record struct SnapEntry(string Method, object? Args, object? Context)
 {
     /// <summary>
     /// The timestamp at which the method was logged
