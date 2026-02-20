@@ -73,6 +73,11 @@ public class RingBuffer<T> where T : class
     }
 
     /// <summary>
+    /// Returns the maximum capacity of the buffer.
+    /// </summary>
+    public int Capacity => _capacity;
+
+    /// <summary>
     /// Clears the buffer. Note: In a highly concurrent lock-free system, 
     /// clearing while active writers are running is inherently a "best effort".
     /// </summary>
