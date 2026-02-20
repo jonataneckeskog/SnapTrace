@@ -98,5 +98,63 @@ namespace SnapTrace.Core.Tests.Unit
             var buffer = bufferField?.GetValue(null) as RingBuffer<SnapEntry>;
             Assert.Equal(1, buffer?.Count);
         }
+
+        [Fact]
+        public void OnUnhandledException_ShouldTriggerOutputAction()
+        {
+            // Arrange
+            ResetObserver();
+            string? capturedOutput = null;
+            var options = new SnapOptions(10, true, (s) => capturedOutput = s);
+            SnapTraceObserver.Initialize(options);
+
+            // Act
+            // Simulate an unhandled exception via Reflection since the method is private
+            var onExceptionMethod = typeof(SnapTraceObserver).GetMethod("OnUnhandledException",
+                BindingFlags.NonPublic | BindingFlags.Static);
+
+            var exception = new InvalidOperationException("Test Crash");
+            var eventArgs = new UnhandledExceptionEventArgs(exception, isTerminating: true);
+
+            onExceptionMethod?.Invoke(null, [this, eventArgs]);
+
+            // Assert
+            Assert.NotNull(capturedOutput);
+            Assert.Contains("Test Crash", capturedOutput);
+        }
+
+        [Fact]
+        public void OnUnhandledException_ShouldDumpRecordedEntries()
+        {
+            // Arrange
+            ResetObserver();
+            string? capturedOutput = null;
+            var options = new SnapOptions(10, false, s => capturedOutput = s); // Timestamps off for predictable output
+            SnapTraceObserver.Initialize(options);
+
+            var recordMethod = typeof(SnapTraceObserver).GetMethod("Record", BindingFlags.NonPublic | BindingFlags.Static);
+            var entry = new SnapEntry("MyTestClass.MyTestMethod", "()", null, SnapStatus.Call);
+            recordMethod?.Invoke(null, [entry]);
+
+            // Act
+            var onExceptionMethod = typeof(SnapTraceObserver).GetMethod("OnUnhandledException",
+                BindingFlags.NonPublic | BindingFlags.Static);
+
+            var exception = new InvalidOperationException("Test Crash");
+            var eventArgs = new UnhandledExceptionEventArgs(exception, isTerminating: true);
+
+            onExceptionMethod?.Invoke(null, [this, eventArgs]);
+
+            // Assert
+            Assert.NotNull(capturedOutput);
+            
+            // Check for the recorded call as JSON
+            Assert.Contains("\"Method\":\"MyTestClass.MyTestMethod\"", capturedOutput);
+            Assert.Contains("\"Status\":\"Call\"", capturedOutput);
+
+            // Check for the recorded exception as JSON
+            Assert.Contains("\"Data\":\"Test Crash\"", capturedOutput);
+            Assert.Contains("\"Status\":\"Error\"", capturedOutput);
+        }
     }
 }
