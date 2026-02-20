@@ -7,16 +7,29 @@ namespace SnapTrace.Generators.Builders;
 public class ClassInterceptorBuilder
 {
     private readonly string _className;
-    private readonly bool _isStatic;
+    private readonly ClassSituation _situation;
+    private string _typeParameters = string.Empty;
+    private string _whereConstraints = string.Empty;
 
     private readonly HashSet<string> _contextMembers = new();
     private readonly List<MethodInterceptorBuilder> _methods = new();
-    private bool _isUnsafe = false;
 
-    public ClassInterceptorBuilder(string className, bool isStatic)
+    public ClassInterceptorBuilder(string className, ClassSituation situation)
     {
         _className = className;
-        _isStatic = isStatic;
+        _situation = situation;
+    }
+
+    public ClassInterceptorBuilder WithTypeParameters(string typeParameters)
+    {
+        _typeParameters = typeParameters;
+        return this;
+    }
+
+    public ClassInterceptorBuilder WithWhereConstraints(string whereConstraints)
+    {
+        _whereConstraints = whereConstraints;
+        return this;
     }
 
     public ClassInterceptorBuilder WithMethod(string name, MethodSituation situation, Action<MethodInterceptorBuilder> config)
@@ -36,23 +49,49 @@ public class ClassInterceptorBuilder
 
     internal string InternalBuild()
     {
-        // Build the private helper method that resolves the hook
-        var contextBody = _contextMembers.Any()
-            ? $"new {{ {string.Join(", ", _contextMembers.Select(m => $"instance.{m}"))} }}"
-            : "null";
+        var (helperMethod, methodsSource) = BuildParts();
 
-        var helperMethod = $@"
-    private static object? GetContext({_className} instance) => {contextBody};";
+        var unsafeKeyword = _situation.HasFlag(ClassSituation.Unsafe) ? "unsafe " : "";
+
+        return $@"
+public {unsafeKeyword}static class {_className}_Interceptors{_typeParameters}
+{_whereConstraints}
+{{
+{helperMethod}
+
+{methodsSource}
+}}";
+    }
+
+    private (string, string) BuildParts()
+    {
+        string helperMethod;
+        if (_situation.HasFlag(ClassSituation.Static))
+        {
+            var contextBody = _contextMembers.Any()
+                ? $"new {{ {string.Join(", ", _contextMembers.Select(m => $"{_className}.{m}"))} }}"
+                : "null";
+
+            helperMethod = $"    private static object? GetContext() => {contextBody};";
+        }
+        else
+        {
+            var contextBody = _contextMembers.Any()
+                ? $"new {{ {string.Join(", ", _contextMembers.Select(m => $"instance.{m}"))} }}"
+                : "null";
+
+            var instanceType = _className;
+            if (_situation.HasFlag(ClassSituation.IsStruct) || _situation.HasFlag(ClassSituation.IsRefStruct))
+            {
+                // To avoid copying structs, we can pass them by readonly reference.
+                instanceType = $"in {instanceType}";
+            }
+
+            helperMethod = $"    private static object? GetContext({instanceType} instance) => {contextBody};";
+        }
 
         var methodsSource = string.Join("\n", _methods.Select(m => m.InternalBuild()));
 
-        var unsafeKeyword = _isUnsafe ? "unsafe " : "";
-
-        return $@"
-public {unsafeKeyword}static class {_className}_Interceptors
-{{
-    {helperMethod}
-    {methodsSource}
-}}";
+        return (helperMethod, methodsSource);
     }
 }

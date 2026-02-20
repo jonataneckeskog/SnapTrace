@@ -9,9 +9,9 @@ public class SourceFileBuilder
 {
     private readonly List<ClassInterceptorBuilder> _classes = new();
 
-    public SourceFileBuilder WithClass(string name, Action<ClassInterceptorBuilder> config, bool isStatic)
+    public SourceFileBuilder WithClass(string name, ClassSituation situation, Action<ClassInterceptorBuilder> config)
     {
-        var mb = new ClassInterceptorBuilder(name, isStatic);
+        var mb = new ClassInterceptorBuilder(name, situation);
         config(mb);
         _classes.Add(mb);
         return this;
