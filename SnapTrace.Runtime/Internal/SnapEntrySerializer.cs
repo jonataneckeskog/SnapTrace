@@ -1,8 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using SnapTrace.Runtime.Models;
 
-namespace SnapTrace.Core.Runtime;
+namespace SnapTrace.Runtime.Internal;
 
 internal class SnapEntrySerializer
 {

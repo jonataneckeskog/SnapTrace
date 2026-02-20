@@ -1,6 +1,6 @@
-using SnapTrace.Core.Runtime;
+using SnapTrace.Runtime.Models;
 
-namespace SnapTrace.Core.Tests.Unit;
+namespace SnapTrace.Runtime.Tests.Models;
 
 public class SnapStatusTests
 {

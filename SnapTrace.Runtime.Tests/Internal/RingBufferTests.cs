@@ -1,8 +1,6 @@
-﻿using SnapTrace.Core.Runtime;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using SnapTrace.Runtime.Internal;
 
-namespace SnapTrace.Core.Tests.Unit;
+namespace SnapTrace.Runtime.Tests.Internal;
 
 public class RingBufferTests
 {

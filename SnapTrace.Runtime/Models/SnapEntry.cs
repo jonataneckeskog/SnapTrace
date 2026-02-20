@@ -1,4 +1,4 @@
-namespace SnapTrace.Core.Runtime;
+namespace SnapTrace.Runtime.Models;
 
 /// <summary>
 /// A logged entry for the trace-buffer. Saves only references, so

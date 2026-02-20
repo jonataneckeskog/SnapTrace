@@ -5,7 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <DefineConstants>$(DefineConstants);SNAPTRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SnapTrace.Core\SnapTrace.Core.csproj" />
+    <ProjectReference Include="..\SnapTrace.Runtime\SnapTrace.Runtime.csproj" />
   </ItemGroup>
 
 </Project>

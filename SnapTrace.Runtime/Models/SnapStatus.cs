@@ -1,4 +1,4 @@
-namespace SnapTrace.Core.Runtime;
+namespace SnapTrace.Runtime.Models;
 
 /// <summary>
 /// An marker for SnapEntry, indicating what type it is

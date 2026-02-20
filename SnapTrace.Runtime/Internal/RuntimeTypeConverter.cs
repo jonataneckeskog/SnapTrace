@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace SnapTrace.Core.Runtime;
+namespace SnapTrace.Runtime.Internal;
 
 /// <summary>
 /// Forces System.Text.Json to serialize 'object' properties using their actual runtime type,
