@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="SnapTrace.Core.Tests/SnapTrace.Core.Tests.csproj" />
   <Project Path="SnapTrace.Core/SnapTrace.Core.csproj" />
   <Project Path="SnapTrace.Generators/SnapTrace.Generators.csproj" />
 </Solution>
