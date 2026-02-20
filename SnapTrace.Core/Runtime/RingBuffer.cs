@@ -1,16 +1,15 @@
 namespace SnapTrace.Core.Runtime;
 
 /// <summary>
-/// A simple generic implementation of a fix-sized FIFO-queue, here
-/// called RingBuffer.
+/// A thread-safe, lock-free implementation of a fix-sized FIFO-queue.
+/// Must be used with reference types (class) to ensure atomic writes.
 /// </summary>
-/// <typeparam name="T"></typeparam>
-public class RingBuffer<T>
+public class RingBuffer<T> where T : class
 {
     private readonly int _capacity;
     private readonly T[] _buffer;
-    private int _nextIndex = 0;
-    private int _count = 0;
+
+    private long _counter = 0;
 
     public RingBuffer(int capacity)
     {
@@ -20,13 +19,9 @@ public class RingBuffer<T>
 
     public void Append(T item)
     {
-        _buffer[_nextIndex] = item;
-        _nextIndex = (_nextIndex + 1) % _capacity;
-
-        if (_count < _capacity)
-        {
-            _count++;
-        }
+        long ticket = Interlocked.Increment(ref _counter) - 1;
+        int index = (int)(ticket % _capacity);
+        _buffer[index] = item;
     }
 
     /// <summary>
@@ -34,10 +29,16 @@ public class RingBuffer<T>
     /// </summary>
     public IEnumerable<T> GetLogs()
     {
-        int start = _count < _capacity ? 0 : _nextIndex;
-        for (int i = 0; i < _count; i++)
+        long currentCounter = Interlocked.Read(ref _counter);
+        int count = (int)Math.Min(currentCounter, _capacity);
+
+        long startTicket = currentCounter > _capacity ? currentCounter - _capacity : 0;
+
+        for (int i = 0; i < count; i++)
         {
-            yield return _buffer[(start + i) % _capacity];
+            int index = (int)((startTicket + i) % _capacity);
+            var item = _buffer[index];
+            if (item != null) yield return item;
         }
     }
 
@@ -46,25 +47,38 @@ public class RingBuffer<T>
     /// </summary>
     public IEnumerable<T> GetLogsReversed()
     {
-        for (int i = 1; i <= _count; i++)
+        long currentCounter = Interlocked.Read(ref _counter);
+        int count = (int)Math.Min(currentCounter, _capacity);
+
+        long startTicket = currentCounter - 1;
+
+        for (int i = 0; i < count; i++)
         {
-            int index = (_nextIndex - i + _capacity) % _capacity;
-            yield return _buffer[index];
+            int index = (int)((startTicket - i) % _capacity);
+            var item = _buffer[index];
+            if (item != null) yield return item;
         }
     }
 
     /// <summary>
     /// Returns the current size of the buffer.
     /// </summary>
-    public int Count => _count;
+    public int Count
+    {
+        get
+        {
+            long currentCounter = Interlocked.Read(ref _counter);
+            return (int)Math.Min(currentCounter, _capacity);
+        }
+    }
 
     /// <summary>
-    /// Clears all elements in the RingBuffer.
+    /// Clears the buffer. Note: In a highly concurrent lock-free system, 
+    /// clearing while active writers are running is inherently a "best effort".
     /// </summary>
     public void Clear()
     {
         Array.Clear(_buffer, 0, _capacity);
-        _nextIndex = 0;
-        _count = 0;
+        Interlocked.Exchange(ref _counter, 0);
     }
 }

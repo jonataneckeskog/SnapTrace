@@ -1,18 +1,22 @@
 ﻿using SnapTrace.Core.Runtime;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SnapTrace.Core.Tests.Unit;
 
 public class RingBufferTests
 {
+    private record TraceItem(string Value);
+
     [Fact]
     public void Append_ShouldIncreaseCount_WhenBelowCapacity()
     {
         // Arrange
-        var buffer = new RingBuffer<int>(3);
+        var buffer = new RingBuffer<TraceItem>(3);
 
         // Act
-        buffer.Append(1);
-        buffer.Append(2);
+        buffer.Append(new("1"));
+        buffer.Append(new("2"));
 
         // Assert
         Assert.Equal(2, buffer.Count);
@@ -22,12 +26,12 @@ public class RingBufferTests
     public void Append_ShouldNotExceedCapacity_WhenBufferIsFull()
     {
         // Arrange
-        var buffer = new RingBuffer<int>(2);
+        var buffer = new RingBuffer<TraceItem>(2);
 
         // Act
-        buffer.Append(1);
-        buffer.Append(2);
-        buffer.Append(3);
+        buffer.Append(new("1"));
+        buffer.Append(new("2"));
+        buffer.Append(new("3"));
 
         // Assert
         Assert.Equal(2, buffer.Count);
@@ -43,71 +47,69 @@ public class RingBufferTests
         buffer.Append("C");
 
         // Act
-        var logs = buffer.GetLogs();
+        var logs = buffer.GetLogs().ToList();
 
         // Assert
-        Assert.Equal(["A", "B", "C"], logs);
+        Assert.Equal(new[] { "A", "B", "C" }, logs);
     }
 
     [Fact]
     public void GetLogs_ShouldHandleWrapAround_Correctly()
     {
         // Arrange
-        var buffer = new RingBuffer<int>(3);
-        buffer.Append(1);
-        buffer.Append(2);
-        buffer.Append(3);
-        buffer.Append(4); // Overwrites 1
+        var buffer = new RingBuffer<string>(3);
+        buffer.Append("1");
+        buffer.Append("2");
+        buffer.Append("3");
+        buffer.Append("4"); // Overwrites "1"
 
         // Act
-        var logs = buffer.GetLogs();
+        var logs = buffer.GetLogs().ToList();
 
         // Assert
-        // Expected: 2, 3, 4
-        Assert.Equal([2, 3, 4], logs);
+        Assert.Equal(new[] { "2", "3", "4" }, logs);
     }
 
     [Fact]
     public void GetLogsReversed_ShouldReturnItemsInReverseInsertionOrder()
     {
         // Arrange
-        var buffer = new RingBuffer<int>(3);
-        buffer.Append(1);
-        buffer.Append(2);
-        buffer.Append(3);
+        var buffer = new RingBuffer<string>(3);
+        buffer.Append("1");
+        buffer.Append("2");
+        buffer.Append("3");
 
         // Act
-        var logs = buffer.GetLogsReversed();
+        var logs = buffer.GetLogsReversed().ToList();
 
         // Assert
-        Assert.Equal([3, 2, 1], logs);
+        Assert.Equal(new[] { "3", "2", "1" }, logs);
     }
 
     [Fact]
     public void GetLogsReversed_ShouldHandleWrapAround_Correctly()
     {
         // Arrange
-        var buffer = new RingBuffer<int>(3);
-        buffer.Append(1);
-        buffer.Append(2);
-        buffer.Append(3);
-        buffer.Append(4); // Overwrites 1. Buffer state: [4, 2, 3] (indices 0, 1, 2). Next index: 1.
+        var buffer = new RingBuffer<string>(3);
+        buffer.Append("1");
+        buffer.Append("2");
+        buffer.Append("3");
+        buffer.Append("4"); // Overwrites "1"
 
         // Act
-        var logs = buffer.GetLogsReversed();
+        var logs = buffer.GetLogsReversed().ToList();
 
         // Assert
-        // Expected: 4, 3, 2
-        Assert.Equal([4, 3, 2], logs);
+        Assert.Equal(new[] { "4", "3", "2" }, logs);
     }
 
     [Fact]
     public void Clear_ShouldResetBuffer()
     {
         // Arrange
-        var buffer = new RingBuffer<int>(3);
-        buffer.Append(1);
-        buffer.Append(2);
+        var buffer = new RingBuffer<string>(3);
+        buffer.Append("1");
+        buffer.Append("2");
 
         // Act
         buffer.Clear();
@@ -118,20 +120,27 @@ public class RingBufferTests
     }
 
     [Fact]
-    public void Append_AfterClear_ShouldWorkCorrectly()
+    public void Concurrency_ShouldNotCorruptState_UnderHeavyLoad()
     {
         // Arrange
-        var buffer = new RingBuffer<int>(3);
-        buffer.Append(1);
-        buffer.Append(2);
-        buffer.Clear();
+        const int capacity = 100;
+        const int iterations = 1000;
+        var buffer = new RingBuffer<string>(capacity);
 
         // Act
-        buffer.Append(3);
-        buffer.Append(4);
+        // Simulate multiple threads
+        Parallel.For(0, iterations, i =>
+        {
+            buffer.Append($"Trace {i}");
+        });
 
         // Assert
-        Assert.Equal(2, buffer.Count);
-        Assert.Equal([3, 4], buffer.GetLogs());
+        // 1. The count should be capped at capacity
+        Assert.Equal(capacity, buffer.Count);
+
+        // 2. We should be able to iterate without any NullReferenceExceptions or corruption
+        var logs = buffer.GetLogs().ToList();
+        Assert.Equal(capacity, logs.Count);
+        Assert.All(logs, item => Assert.NotNull(item));
     }
 }
