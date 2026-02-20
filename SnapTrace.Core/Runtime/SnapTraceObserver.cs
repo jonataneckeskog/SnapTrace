@@ -22,15 +22,30 @@ public static class SnapTraceObserver
     [Conditional("SNAPTRACE")]
     public static void Initialize(SnapOptions settings)
     {
-        if (Interlocked.CompareExchange(ref _isInitializedInt, 1, 0) == 1)
+        // Use a standard double-checked locking pattern to ensure thread-safe initialization.
+        if (_isInitializedInt == 1)
+        {
             return;
+        }
 
-        _options = settings;
-        _buffer = new RingBuffer<SnapEntry>(settings.BufferSize);
-        _snapSerializer = new(_options?.RecordTimestamp ?? false);
+        lock (_lock)
+        {
+            if (_isInitializedInt == 1)
+            {
+                return;
+            }
 
-        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+            _options = settings;
+            _buffer = new RingBuffer<SnapEntry>(settings.BufferSize);
+            _snapSerializer = new SnapEntrySerializer(settings.RecordTimestamp);
+
+            AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+            // The lock provides a memory barrier, ensuring all field assignments above are
+            // visible to other threads before the flag is set.
+            _isInitializedInt = 1;
+        }
     }
 
     /// <summary>
