@@ -1,10 +1,10 @@
-namespace SnapTrace.Core.Runtime;
+namespace SnapTrace.Runtime.Internal;
 
 /// <summary>
 /// A thread-safe, lock-free implementation of a fix-sized FIFO-queue.
 /// Must be used with reference types (class) to ensure atomic writes.
 /// </summary>
-public class RingBuffer<T> where T : class
+internal class RingBuffer<T> where T : class
 {
     private readonly int _capacity;
     private readonly T[] _buffer;

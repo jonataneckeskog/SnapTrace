@@ -1,7 +1,9 @@
 using System.Diagnostics;
-using SnapTrace.Core.Configuration;
+using SnapTrace.Runtime.Configuration;
+using SnapTrace.Runtime.Internal;
+using SnapTrace.Runtime.Models;
 
-namespace SnapTrace.Core.Runtime;
+namespace SnapTrace.Runtime;
 
 /// <summary>
 /// The main entrypoint of SnapTrace. Handles the trace data and provides

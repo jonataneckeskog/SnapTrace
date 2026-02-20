@@ -1,6 +1,6 @@
-using SnapTrace.Core.Configuration;
+using SnapTrace.Runtime.Configuration;
 
-namespace SnapTrace.Core.Tests.Unit;
+namespace SnapTrace.Runtime.Tests.Configuration;
 
 public class SnapOptionsTests
 {
