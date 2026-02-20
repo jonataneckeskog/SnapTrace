@@ -11,7 +11,7 @@ public static class SnapTraceObserver
 {
     private static RingBuffer<SnapEntry>? _buffer;
     private static SnapOptions? _options;
-    private static SnapEntrySerializer _snapSerializer = new();
+    private static SnapEntrySerializer? _snapSerializer;
 
     private static readonly object _lock = new();
     private static int _isInitializedInt = 0;
@@ -27,6 +27,7 @@ public static class SnapTraceObserver
 
         _options = settings;
         _buffer = new RingBuffer<SnapEntry>(settings.BufferSize);
+        _snapSerializer = new(_options?.RecordTimestamp ?? false);
 
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
@@ -37,7 +38,7 @@ public static class SnapTraceObserver
     /// </summary>
     private static void Dump()
     {
-        if (_isInitializedInt == 0 || _buffer == null || _options == null) return;
+        if (_isInitializedInt == 0 || _buffer == null || _snapSerializer == null || _options == null) return;
 
         IEnumerable<string> logs = _buffer.GetLogs().Select(_snapSerializer.Serialize);
         _options?.Output(string.Join(Environment.NewLine, logs));

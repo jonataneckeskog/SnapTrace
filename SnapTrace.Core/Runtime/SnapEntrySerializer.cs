@@ -6,17 +6,21 @@ namespace SnapTrace.Core.Runtime;
 internal class SnapEntrySerializer
 {
     private readonly JsonSerializerOptions _options;
+    private readonly bool _includeTime;
 
-    public SnapEntrySerializer()
+    public SnapEntrySerializer(bool includeTime)
     {
         _options = new JsonSerializerOptions
         {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+
             // Ignore reference loops
             ReferenceHandler = ReferenceHandler.IgnoreCycles,
 
             // Serialize Enums as their string names
             Converters = { new JsonStringEnumConverter(), new RuntimeTypeConverter() }
         };
+        _includeTime = includeTime;
     }
 
     /// <summary>
@@ -32,7 +36,7 @@ internal class SnapEntrySerializer
         {
             Status = entry.Status,
             Method = entry.Method,
-            Timestamp = entry.Timestamp,
+            Timestamp = _includeTime ? (DateTime?)entry.Timestamp : null,
             Data = entry.Data,
             Context = entry.Context
         };
@@ -49,7 +53,7 @@ internal class SnapEntrySerializer
             {
                 Status = entry.Status,
                 Method = entry.Method,
-                Timestamp = entry.Timestamp,
+                Timestamp = _includeTime ? (DateTime?)entry.Timestamp : null,
                 Data = entry.Data?.ToString(),
                 Context = entry.Context?.ToString(),
                 SerializationError = ex.Message
