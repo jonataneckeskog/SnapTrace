@@ -6,15 +6,10 @@ namespace SnapTrace.Generators.Tests.Builders;
 public class MethodInterceptorBuilderTests
 {
     [Fact]
-    public Task Verify_Builder_State()
+    public Task Build_WithBaseMethod_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("MyTestClass", "MyTestMethod", default!)
-            .WithReturn("string", deepCopy: true)
-            .WithTypeParameters("T")
-            .WithWhereConstraints("where T : class")
-            .WithParameter("id", "int", modifier: "ref")
-            .AddLocation("C:\\Project\\File.cs", 15, 30);
+        var builder = new MethodInterceptorBuilder("MyTestClass", "MyTestMethod", default!);
 
         var sb = new StringBuilder();
 

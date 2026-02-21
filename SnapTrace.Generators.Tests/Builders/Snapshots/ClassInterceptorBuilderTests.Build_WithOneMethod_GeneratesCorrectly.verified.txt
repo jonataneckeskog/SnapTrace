@@ -1,6 +1,4 @@
-﻿using global::SnapTrace;
-
-internal static class MyClass1SnapInterceptor
+﻿internal static class MyClassSnapInterceptor
 {
     [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = "Record")]
     extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);
@@ -10,16 +8,15 @@ internal static class MyClass1SnapInterceptor
     {
         return string.Empty;
     }
-}
-
-internal static class MyClass2SnapInterceptor
-{
-    [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = "Record")]
-    extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);
 
     [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static string GetClassContext_SnapTrace()
+    public static void MyMethodIntercept_void(this global::MyClass @this)
     {
-        return string.Empty;
+        object? data = null;
+        var context = GetClassContext_SnapTrace();
+
+        CallRecord_SnapTrace(null!, "MyMethod", data, context, global::SnapTrace.SnapStatus.Call);
+        @this.MyMethod();
+        CallRecord_SnapTrace(null!, "MyMethod", null, context, global::SnapTrace.SnapStatus.Return);
     }
 }

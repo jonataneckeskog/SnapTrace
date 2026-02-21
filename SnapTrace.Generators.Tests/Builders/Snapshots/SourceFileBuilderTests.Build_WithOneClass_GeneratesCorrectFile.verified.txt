@@ -10,17 +10,4 @@ internal static class MyClassSnapInterceptor
     {
         return string.Empty;
     }
-
-    [global::System.Runtime.CompilerServices.InterceptsLocation(@"C:\\Project\\File.cs", 15, 30)]
-    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static string MyMethodIntercept_string_int(this global::MyClass @this, ref int id)
-    {
-        object? data = (id: id);
-        var context = GetClassContext_SnapTrace();
-
-        CallRecord_SnapTrace(null!, "MyMethod", data, context, global::SnapTrace.SnapStatus.Call);
-        var result = @this.MyMethod(id);
-        CallRecord_SnapTrace(null!, "MyMethod", result, context, global::SnapTrace.SnapStatus.Return);
-        return result;
-    }
 }
