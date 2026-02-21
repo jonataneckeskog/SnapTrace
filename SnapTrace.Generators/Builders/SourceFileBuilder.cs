@@ -21,6 +21,10 @@ public class SourceFileBuilder
     public string Build()
     {
         StringBuilder sb = new();
-        throw new NotImplementedException(); // TODO
+
+        sb.AppendLine("    using global::SnapTrace;");
+        sb.AppendLine();
+
+        return sb.ToString();
     }
 }

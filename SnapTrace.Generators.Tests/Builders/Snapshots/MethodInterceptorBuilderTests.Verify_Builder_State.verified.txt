@@ -1,1 +1,12 @@
-﻿emptyString
+﻿    [global::System.Runtime.CompilerServices.InterceptsLocation(@"C:\\Project\\File.cs", 15, 30)]
+    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static string MyTestMethodIntercept_string_int<T>(this global::MyTestClass @this, ref int id) where T : class
+    {
+        object? params = (id = id,);
+
+        CallRecord_SnapTrace(null!, "MyTestMethod", context, global::SnapTrace.SnapStatus.Call);
+
+        var result = default!;
+
+        CallRecord_SnapTrace(null!, "MyTestMethod", result, global::SnapTrace.SnapStatus.Return);
+    }

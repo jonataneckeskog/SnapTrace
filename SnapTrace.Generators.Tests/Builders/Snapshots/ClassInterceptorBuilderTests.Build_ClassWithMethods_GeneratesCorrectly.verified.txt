@@ -1,1 +1,21 @@
-﻿emptyString
+﻿internal static class MyClassSnapInterceptor
+{
+    [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = "Record")]
+    extern static void CallRecord_SnapTrace(string method, object? data, object? context, global::SnapTrace.SnapStatus status)
+
+    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static string GetClassContext_SnapTrace()
+    {
+        return string.Empty;
+    }
+
+    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void MyMethodIntercept_void(this global::MyClass @this)
+    {
+        object? params = ();
+
+        CallRecord_SnapTrace(null!, "MyMethod", context, global::SnapTrace.SnapStatus.Call);
+
+        return default!;
+    }
+}

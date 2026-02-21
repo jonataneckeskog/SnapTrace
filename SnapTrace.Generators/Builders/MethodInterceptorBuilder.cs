@@ -65,6 +65,96 @@ public class MethodInterceptorBuilder
 
     internal void InternalBuild(StringBuilder sb)
     {
-        // TODO
+        // 1. Append InterceptsLocation
+        foreach (var loc in _locations)
+        {
+            sb.AppendLine($"    {loc}");
+        }
+
+        // 2. Append method options
+        sb.AppendLine("    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+
+        // 3. Construct the strict interceptor method name
+        // E.g. AddIntercept_string_int_ClassName
+        var safeReturnType = _return.Type.Replace(".", "").Replace("[]", "Array").Replace("<", "").Replace(">", "");
+        var interceptorName = $"{_methodName}Intercept_{safeReturnType}";
+
+        var safeParams = _params.Select(p => p.Type.Replace(".", "").Replace("[]", "Array").Replace("<", "").Replace(">", ""));
+        if (safeParams.Any())
+        {
+            interceptorName += $"_{string.Join("_", safeParams)}";
+        }
+
+        // 4. Resolve MethodSituation (Modifiers & Ref Returns)
+        var modifiers = "public static";
+        if (_situation.HasFlag(MethodSituation.Async)) modifiers += " async";
+        if (_situation.HasFlag(MethodSituation.Unsafe)) modifiers += " unsafe";
+
+        var returnStr = _return.Type;
+        if (_situation.HasFlag(MethodSituation.ReturnsRef)) returnStr = "ref " + returnStr;
+        else if (_situation.HasFlag(MethodSituation.ReturnsRefReadonly)) returnStr = "ref readonly " + returnStr;
+
+        // 5. Construct Method Parameters
+        var methodParams = new List<string>();
+        if (!_situation.HasFlag(MethodSituation.Static))
+        {
+            // Inject 'this' for instance methods
+            methodParams.Add($"this global::{_className} @this");
+        }
+
+        foreach (var p in _params)
+        {
+            var prefix = string.IsNullOrEmpty(p.Modifier) ? "" : $"{p.Modifier} ";
+            if (p.IsParams) prefix += "params ";
+            methodParams.Add($"{prefix}{p.Type} {p.Name}");
+        }
+
+        // 6. Write Method Signature
+        sb.Append($"    {modifiers} {returnStr} {interceptorName}");
+        if (!string.IsNullOrEmpty(_typeParameters)) sb.Append($"<{_typeParameters}>");
+        sb.Append($"({string.Join(", ", methodParams)})");
+        if (!string.IsNullOrEmpty(_whereConstraints)) sb.Append($" {_whereConstraints}");
+        sb.AppendLine();
+        sb.AppendLine("    {");
+
+        // 7. Save method parameters to generic object
+        sb.Append("        object? params = (");
+        foreach (var p in _params)
+        {
+            if (p.Redacted) continue; // Ignore redacted parameters
+
+            if (p.DeepCopy)
+            {
+                // Bytecode copy via raw UTF-8 serialization bytes (Full global paths, no imports needed)
+                sb.Append($"{p.Name} = {p.Name} is null ? default : global::System.Text.Json.JsonSerializer.Deserialize<{p.Type}>(global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({p.Name})),");
+            }
+            else
+            {
+                sb.Append($"{p.Name} = {p.Name},");
+            }
+        }
+        sb.AppendLine(");");
+        sb.AppendLine();
+
+        // 8. Invoke the observer's Record method via the UnsafeAccessor
+        sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", context, global::SnapTrace.SnapStatus.Call);");
+        sb.AppendLine();
+
+        // 9. Capture Return
+        if (_return.IsVoid)
+        {
+            sb.AppendLine($"        return default!;");
+        }
+        else
+        {
+            sb.AppendLine($"        var result = default!;");
+            sb.AppendLine();
+
+            // Record return
+            sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", result, global::SnapTrace.SnapStatus.Return);");
+        }
+
+        // 10. Close the method
+        sb.AppendLine("    }");
     }
 }
