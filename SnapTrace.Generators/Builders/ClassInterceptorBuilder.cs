@@ -51,7 +51,7 @@ public class ClassInterceptorBuilder
 
     internal void InternalBuild(StringBuilder sb)
     {
-        sb.AppendLine($"internal static class {_className}SnapInterceptor");
+        sb.AppendLine($"internal static class {_className}_SnapTrace");
         sb.AppendLine("{");
 
         // 1. Corrected UnsafeAccessor (Added the 'target' class)

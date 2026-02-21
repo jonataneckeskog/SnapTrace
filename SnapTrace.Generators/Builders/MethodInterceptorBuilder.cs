@@ -78,7 +78,7 @@ public class MethodInterceptorBuilder
 
         // 3. Construct the strict interceptor method name
         var safeReturnType = GetSafeTypeName(_return.Type);
-        var interceptorName = $"{_methodName}Intercept_{safeReturnType}";
+        var interceptorName = $"{_methodName}_SnapTrace_{safeReturnType}";
 
         if (_params.Count > 0)
         {
@@ -161,6 +161,9 @@ public class MethodInterceptorBuilder
 
             // Record the result
             sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, global::SnapTrace.SnapStatus.Return);");
+            sb.AppendLine();
+
+            // Return the result
             sb.AppendLine("        return result;");
         }
 

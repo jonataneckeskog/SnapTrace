@@ -1,6 +1,6 @@
 ﻿using global::SnapTrace;
 
-internal static class MyClass1SnapInterceptor
+internal static class MyClass1_SnapTrace
 {
     [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = "Record")]
     extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);
@@ -12,7 +12,7 @@ internal static class MyClass1SnapInterceptor
     }
 }
 
-internal static class MyClass2SnapInterceptor
+internal static class MyClass2_SnapTrace
 {
     [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = "Record")]
     extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);
