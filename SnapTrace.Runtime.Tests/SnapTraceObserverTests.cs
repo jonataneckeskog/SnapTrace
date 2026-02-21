@@ -70,10 +70,9 @@ public class SnapTraceObserverTests
         // Arrange
         ResetObserver();
         var recordMethod = typeof(SnapTraceObserver).GetMethod("Record", BindingFlags.NonPublic | BindingFlags.Static);
-        var entry = new SnapEntry("Test", null, null, SnapStatus.Call);
 
         // Act
-        recordMethod?.Invoke(null, [entry]);
+        recordMethod?.Invoke(null, ["Test", null, null, SnapStatus.Call]);
 
         // Assert
         var bufferField = typeof(SnapTraceObserver).GetField("_buffer", BindingFlags.NonPublic | BindingFlags.Static);
@@ -89,10 +88,9 @@ public class SnapTraceObserverTests
         var options = new SnapOptions(10, true, (s) => { });
         SnapTraceObserver.Initialize(options);
         var recordMethod = typeof(SnapTraceObserver).GetMethod("Record", BindingFlags.NonPublic | BindingFlags.Static);
-        var entry = new SnapEntry("Test", null, null, SnapStatus.Call);
 
         // Act
-        recordMethod?.Invoke(null, [entry]);
+        recordMethod?.Invoke(null, ["Test", null, null, SnapStatus.Call]);
 
         // Assert
         var bufferField = typeof(SnapTraceObserver).GetField("_buffer", BindingFlags.NonPublic | BindingFlags.Static);
@@ -134,8 +132,7 @@ public class SnapTraceObserverTests
         SnapTraceObserver.Initialize(options);
 
         var recordMethod = typeof(SnapTraceObserver).GetMethod("Record", BindingFlags.NonPublic | BindingFlags.Static);
-        var entry = new SnapEntry("MyTestClass.MyTestMethod", "()", null, SnapStatus.Call);
-        recordMethod?.Invoke(null, [entry]);
+        recordMethod?.Invoke(null, ["MyTestClass.MyTestMethod", "()", null, SnapStatus.Call]);
 
         // Act
         var onExceptionMethod = typeof(SnapTraceObserver).GetMethod("OnUnhandledException",

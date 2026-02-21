@@ -66,10 +66,11 @@ public static class SnapTraceObserver
     /// while the user cannot directly call it.
     /// </summary>
     /// <param name="entry">The entry to record.</param>
-    private static void Record(SnapEntry entry)
+    private static void Record(string method, object? data, object? context, SnapStatus status)
     {
         if (_isInitializedInt == 0) return;
 
+        var entry = new SnapEntry(method, data, context, status);
         _buffer?.Append(entry);
     }
 
@@ -81,11 +82,11 @@ public static class SnapTraceObserver
     {
         if (e.ExceptionObject is Exception ex)
         {
-            Record(new SnapEntry(ex.TargetSite?.Name ?? "Unknown", ex.Message, ex.StackTrace, SnapStatus.Error));
+            Record(ex.TargetSite?.Name ?? "Unknown", ex.Message, ex.StackTrace, SnapStatus.Error);
         }
         else
         {
-            Record(new SnapEntry("Fatal", e.ExceptionObject?.ToString(), null, SnapStatus.Error));
+            Record("Fatal", e.ExceptionObject?.ToString(), null, SnapStatus.Error);
         }
 
         Dump();
@@ -98,11 +99,11 @@ public static class SnapTraceObserver
     {
         if (e.Exception is Exception ex)
         {
-            Record(new SnapEntry(ex.TargetSite?.Name ?? "Unknown", ex.Message, ex.StackTrace, SnapStatus.Error));
+            Record(ex.TargetSite?.Name ?? "Unknown", ex.Message, ex.StackTrace, SnapStatus.Error);
         }
         else
         {
-            Record(new SnapEntry("Fatal", e.Exception?.ToString(), null, SnapStatus.Error));
+            Record("Fatal", e.Exception?.ToString(), null, SnapStatus.Error);
         }
 
         Dump();
