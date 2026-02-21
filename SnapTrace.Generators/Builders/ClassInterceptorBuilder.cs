@@ -54,13 +54,13 @@ public class ClassInterceptorBuilder
         sb.AppendLine($"internal static class {_className}SnapInterceptor");
         sb.AppendLine("{");
 
-        // 1. Generate the UnsafeAccessor inside the static class
-        // This allows every intercepted method in this class to use CallRecord
+        // 1. Corrected UnsafeAccessor (Added the 'target' class)
         sb.AppendLine("    [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = \"Record\")]");
-        sb.AppendLine("    extern static void CallRecord_SnapTrace(string method, object? data, object? context, global::SnapTrace.SnapStatus status)");
+        // Replace 'global::SnapTrace.SnapTracer' with the class that actually has the 'Record' method
+        sb.AppendLine("    extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);");
         sb.AppendLine();
 
-        // 2. Generate the GetContext accessor, which methods can call to get the extra context
+        // 2. Corrected GetContext accessor
         sb.AppendLine("    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
         sb.AppendLine("    private static string GetClassContext_SnapTrace()");
         sb.AppendLine("    {");
@@ -72,14 +72,14 @@ public class ClassInterceptorBuilder
         }
         else
         {
-            sb.Append(string.Join(", ", _contextMembers));
-            sb.AppendLine(";");
+            var joined = string.Join(", ", _contextMembers.Select(m => $"{{{m}}}"));
+            sb.Append($"$\"({joined})\";");
+            sb.AppendLine();
         }
 
         sb.AppendLine("    }");
-        sb.AppendLine();
 
-        // 2. Loop through and build the individual method interceptors
+        // 3. Loop through and build the individual method interceptors
         foreach (var method in _methods)
         {
             method.InternalBuild(sb);

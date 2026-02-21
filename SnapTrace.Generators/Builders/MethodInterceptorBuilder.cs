@@ -65,6 +65,8 @@ public class MethodInterceptorBuilder
 
     internal void InternalBuild(StringBuilder sb)
     {
+        sb.AppendLine();
+
         // 1. Append InterceptsLocation
         foreach (var loc in _locations)
         {
@@ -75,14 +77,13 @@ public class MethodInterceptorBuilder
         sb.AppendLine("    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 
         // 3. Construct the strict interceptor method name
-        // E.g. AddIntercept_string_int_ClassName
-        var safeReturnType = _return.Type.Replace(".", "").Replace("[]", "Array").Replace("<", "").Replace(">", "");
+        var safeReturnType = GetSafeTypeName(_return.Type);
         var interceptorName = $"{_methodName}Intercept_{safeReturnType}";
 
-        var safeParams = _params.Select(p => p.Type.Replace(".", "").Replace("[]", "Array").Replace("<", "").Replace(">", ""));
-        if (safeParams.Any())
+        if (_params.Count > 0)
         {
-            interceptorName += $"_{string.Join("_", safeParams)}";
+            var paramPart = string.Join("_", _params.Select(p => GetSafeTypeName(p.Type)));
+            interceptorName += $"_{paramPart}";
         }
 
         // 4. Resolve MethodSituation (Modifiers & Ref Returns)
@@ -117,44 +118,66 @@ public class MethodInterceptorBuilder
         sb.AppendLine();
         sb.AppendLine("    {");
 
-        // 7. Save method parameters to generic object
-        sb.Append("        object? params = (");
-        foreach (var p in _params)
+        // 7. Save method parameters to a tuple
+        sb.Append("        object? data = ");
+        if (_params.Count == 0)
         {
-            if (p.Redacted) continue; // Ignore redacted parameters
-
-            if (p.DeepCopy)
-            {
-                // Bytecode copy via raw UTF-8 serialization bytes (Full global paths, no imports needed)
-                sb.Append($"{p.Name} = {p.Name} is null ? default : global::System.Text.Json.JsonSerializer.Deserialize<{p.Type}>(global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({p.Name})),");
-            }
-            else
-            {
-                sb.Append($"{p.Name} = {p.Name},");
-            }
-        }
-        sb.AppendLine(");");
-        sb.AppendLine();
-
-        // 8. Invoke the observer's Record method via the UnsafeAccessor
-        sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", context, global::SnapTrace.SnapStatus.Call);");
-        sb.AppendLine();
-
-        // 9. Capture Return
-        if (_return.IsVoid)
-        {
-            sb.AppendLine($"        return default!;");
+            sb.AppendLine("null;");
         }
         else
         {
-            sb.AppendLine($"        var result = default!;");
-            sb.AppendLine();
+            sb.Append("(");
+            var tupleParts = _params.Select(p =>
+            {
+                if (p.Redacted) return $"{p.Name}: \"[REDACTED]\"";
+                if (p.DeepCopy) return $"{p.Name}: {p.Name} is null ? default : global::System.Text.Json.JsonSerializer.Deserialize<{p.Type}>(global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({p.Name}))";
+                return $"{p.Name}: {p.Name}";
+            });
+            sb.Append(string.Join(", ", tupleParts));
+            sb.AppendLine(");");
+        }
 
-            // Record return
-            sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", result, global::SnapTrace.SnapStatus.Return);");
+        // 8. Save the context
+        sb.AppendLine("        var context = GetClassContext_SnapTrace();");
+        sb.AppendLine();
+
+        // 8. Record the Entry
+        sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, global::SnapTrace.SnapStatus.Call);");
+
+        // 9. EXECUTE ORIGINAL AND CAPTURE RETURN
+        if (_return.IsVoid)
+        {
+            // Call the original method on the '@this' instance or statically
+            var target = _situation.HasFlag(MethodSituation.Static) ? $"global::{_className}" : "@this";
+            sb.AppendLine($"        {target}.{_methodName}({string.Join(", ", _params.Select(p => p.Name))});");
+
+            // Record the exit
+            sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", null, context, global::SnapTrace.SnapStatus.Return);");
+        }
+        else
+        {
+            var target = _situation.HasFlag(MethodSituation.Static) ? $"global::{_className}" : "@this";
+            sb.AppendLine($"        var result = {target}.{_methodName}({string.Join(", ", _params.Select(p => p.Name))});");
+
+            // Record the result
+            sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, global::SnapTrace.SnapStatus.Return);");
+            sb.AppendLine("        return result;");
         }
 
         // 10. Close the method
         sb.AppendLine("    }");
+    }
+
+    private static string GetSafeTypeName(string type)
+    {
+        return type
+            .Replace("global::", "")
+            .Replace("[]", "Array")
+            .Replace("<", "_")
+            .Replace(">", "_")
+            .Replace(",", "_")
+            .Replace(" ", "")
+            .Replace(".", "_")
+            .TrimEnd('_');
     }
 }
