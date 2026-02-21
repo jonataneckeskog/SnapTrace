@@ -1,5 +1,4 @@
-﻿
-    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+﻿    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void MyTestMethod_SnapTrace_void(this global::MyTestClass @this)
     {
         object? data = null;

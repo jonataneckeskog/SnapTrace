@@ -23,11 +23,12 @@ public class SourceFileBuilder
         StringBuilder sb = new();
 
         sb.AppendLine("using global::SnapTrace;");
+        sb.AppendLine();
 
-        foreach (var __class in _classes)
+        foreach (var (__class, i) in _classes.Select((value, index) => (value, index)))
         {
-            sb.AppendLine();
             __class.InternalBuild(sb);
+            if (i < _classes.Count - 1) sb.AppendLine();
         }
 
         return sb.ToString();

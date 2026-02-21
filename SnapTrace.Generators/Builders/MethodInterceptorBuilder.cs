@@ -65,8 +65,6 @@ public class MethodInterceptorBuilder
 
     internal void InternalBuild(StringBuilder sb)
     {
-        sb.AppendLine();
-
         // 1. Append InterceptsLocation
         foreach (var loc in _locations)
         {
