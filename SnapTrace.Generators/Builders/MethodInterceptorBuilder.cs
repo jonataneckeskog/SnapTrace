@@ -16,8 +16,8 @@ public class MethodInterceptorBuilder
     // Method Metadata
     private readonly string _methodName;
     private readonly string _className;
-    private string _typeParameters;
-    private string _whereConstraints;
+    private string? _typeParameters;
+    private string? _whereConstraints;
     private MethodSituation _situation;
 
     public MethodInterceptorBuilder(string className, string methodName, MethodSituation situation)
@@ -29,10 +29,9 @@ public class MethodInterceptorBuilder
 
     // --- Standard additions ---
 
-    public MethodInterceptorBuilder WithReturn(string type = "void", bool isVoid = true, bool deepCopy = false, bool redacted = false)
+    public MethodInterceptorBuilder WithReturn(string type, bool deepCopy = false, bool redacted = false)
     {
-        if (isVoid) return this;
-
+        bool isVoid = type == "void";
         _return = new ReturnDefinition(type, isVoid, deepCopy, redacted);
         return this;
     }
@@ -57,7 +56,8 @@ public class MethodInterceptorBuilder
 
     public MethodInterceptorBuilder AddLocation(string path, int line, int col)
     {
-        _locations.Add($@"[global::System.Runtime.CompilerServices.InterceptsLocation(@""{path}"", {line}, {col})]");
+        var safePath = path.Replace("\\", "\\\\");
+        _locations.Add($@"[global::System.Runtime.CompilerServices.InterceptsLocation(@""{safePath}"", {line}, {col})]");
         return this;
     }
 

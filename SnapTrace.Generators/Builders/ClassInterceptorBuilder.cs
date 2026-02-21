@@ -10,8 +10,8 @@ public class ClassInterceptorBuilder
 {
     private readonly string _className;
     private readonly ClassSituation _situation;
-    private string _typeParameters = string.Empty;
-    private string _whereConstraints = string.Empty;
+    private string? _typeParameters;
+    private string? _whereConstraints;
 
     private readonly HashSet<string> _contextMembers = new();
     private readonly List<MethodInterceptorBuilder> _methods = new();
