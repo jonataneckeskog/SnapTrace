@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Builders;
 
@@ -47,51 +49,8 @@ public class ClassInterceptorBuilder
         return this;
     }
 
-    internal string InternalBuild()
+    internal void InternalBuild(StringBuilder sb)
     {
-        var (helperMethod, methodsSource) = BuildParts();
-
-        var unsafeKeyword = _situation.HasFlag(ClassSituation.Unsafe) ? "unsafe " : "";
-
-        return $@"
-public {unsafeKeyword}static class {_className}_Interceptors{_typeParameters}
-{_whereConstraints}
-{{
-{helperMethod}
-
-{methodsSource}
-}}";
-    }
-
-    private (string, string) BuildParts()
-    {
-        string helperMethod;
-        if (_situation.HasFlag(ClassSituation.Static))
-        {
-            var contextBody = _contextMembers.Any()
-                ? $"new {{ {string.Join(", ", _contextMembers.Select(m => $"{_className}.{m}"))} }}"
-                : "null";
-
-            helperMethod = $"    private static object? GetContext() => {contextBody};";
-        }
-        else
-        {
-            var contextBody = _contextMembers.Any()
-                ? $"new {{ {string.Join(", ", _contextMembers.Select(m => $"instance.{m}"))} }}"
-                : "null";
-
-            var instanceType = _className;
-            if (_situation.HasFlag(ClassSituation.IsStruct) || _situation.HasFlag(ClassSituation.IsRefStruct))
-            {
-                // To avoid copying structs, we can pass them by readonly reference.
-                instanceType = $"in {instanceType}";
-            }
-
-            helperMethod = $"    private static object? GetContext({instanceType} instance) => {contextBody};";
-        }
-
-        var methodsSource = string.Join("\n", _methods.Select(m => m.InternalBuild()));
-
-        return (helperMethod, methodsSource);
+        // TODO
     }
 }

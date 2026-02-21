@@ -1,14 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Builders;
 
 public class MethodInterceptorBuilder
 {
     // Builder data
-    private (string Type, bool IsVoid, bool DeepCopy, bool Redacted) _return = ("void", true, false, false);
-    private readonly List<(string Name, string Type, string Modifier, bool IsParams, bool DeepCopy, bool Redacted)> _params = new();
+    private ReturnDefinition _return = new("void", true, false, false);
+    private readonly List<ParameterDefinition> _params = new();
     private readonly List<string> _locations = new();
 
     // Method Metadata
@@ -31,7 +33,7 @@ public class MethodInterceptorBuilder
     {
         if (isVoid) return this;
 
-        _return = (type, isVoid, deepCopy, redacted);
+        _return = new ReturnDefinition(type, isVoid, deepCopy, redacted);
         return this;
     }
 
@@ -49,7 +51,7 @@ public class MethodInterceptorBuilder
 
     public MethodInterceptorBuilder WithParameter(string name, string type, string modifier = "", bool isParams = false, bool deepCopy = false, bool redacted = false)
     {
-        _params.Add((name, type, modifier, isParams, deepCopy, redacted));
+        _params.Add(new ParameterDefinition(name, type, modifier, isParams, deepCopy, redacted));
         return this;
     }
 
@@ -61,8 +63,8 @@ public class MethodInterceptorBuilder
 
     // --- The Build Engine ---
 
-    internal string InternalBuild()
+    internal void InternalBuild(StringBuilder sb)
     {
-        return $@"TODO";
+        // TODO
     }
 }

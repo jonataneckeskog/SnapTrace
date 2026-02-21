@@ -1,6 +1,6 @@
 using System;
 
-namespace SnapTrace.Generators.Builders;
+namespace SnapTrace.Generators.Definitions;
 
 [Flags]
 public enum MethodSituation
