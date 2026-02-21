@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="SnapTrace.Runtime.Tests" />
+    <InternalsVisibleTo Include="SnapTrace.Generators.Tests" />
   </ItemGroup>
 
 </Project>
