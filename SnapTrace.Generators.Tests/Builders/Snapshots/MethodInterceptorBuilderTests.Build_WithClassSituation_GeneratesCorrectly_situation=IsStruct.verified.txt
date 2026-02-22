@@ -1,5 +1,5 @@
 ﻿    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void MyTestMethod_SnapTrace_void(ref global::MyTestClass @this)
+    public static void MyTestMethod_SnapTrace_void(ref global::MyNamespace.MyTestClass @this)
     {
         object? data = null;
         var context = GetClassContext_SnapTrace(ref @this);

@@ -10,7 +10,7 @@ public class SourceFileBuilderTests
     {
         // Arrange
         var builder = new SourceFileBuilder()
-            .WithClass("MyClass", ClassSituation.None, c => { });
+            .WithNamespace("MyNamespace", n => { });
 
         // Act
         var actual = builder.Build();
@@ -24,8 +24,8 @@ public class SourceFileBuilderTests
     {
         // Arrange
         var builder = new SourceFileBuilder()
-            .WithClass("MyClass1", ClassSituation.None, c => { })
-            .WithClass("MyClass2", ClassSituation.None, c => { });
+            .WithNamespace("MyNamespace1", n => { })
+            .WithNamespace("MyNamespace2", n => { });
 
         // Act
         var actual = builder.Build();

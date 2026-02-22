@@ -10,7 +10,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithBaseMethod_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("MyTestClass", "MyTestMethod", default!, default!);
+        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", default!, default!);
 
         var sb = new StringBuilder();
 
@@ -26,7 +26,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_StaticMethod_OnInstanceClass_HasNullContext()
     {
         // Arrange: Class is default (instance), but Method is Static
-        var builder = new MethodInterceptorBuilder("MyTestClass", "MyTestMethod", MethodSituation.Static, default!);
+        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", MethodSituation.Static, default!);
         var sb = new StringBuilder();
 
         // Act
@@ -40,7 +40,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithGenericMethod_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("MyTestClass", "MyTestMethod", MethodSituation.Generic, default!)
+        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", MethodSituation.Generic, default!)
             .WithTypeParameters("<T>")
             .WithWhereConstraints("where T : class");
 
@@ -58,7 +58,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithGenericClass_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("MyTestClass", "MyTestMethod", default!, ClassSituation.IsGeneric, "<T>");
+        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass<T>", "MyTestMethod", default!, ClassSituation.IsGeneric);
         var sb = new StringBuilder();
 
         // Act
@@ -78,7 +78,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithMethodSituation_GeneratesCorrectly(MethodSituation situation)
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("MyTestClass", "MyTestMethod", situation, default!);
+        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", situation, default!);
         var sb = new StringBuilder();
 
         // Act
@@ -97,7 +97,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithClassSituation_GeneratesCorrectly(ClassSituation situation)
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("MyTestClass", "MyTestMethod", default!, situation);
+        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", default!, situation);
         var sb = new StringBuilder();
 
         // Act

@@ -5,6 +5,6 @@
         object? context = null;
 
         CallRecord_SnapTrace(null!, "MyTestMethod", data, context, global::SnapTrace.SnapStatus.Call);
-        global::MyTestClass.MyTestMethod();
+        global::MyNamespace.MyTestClass.MyTestMethod();
         CallRecord_SnapTrace(null!, "MyTestMethod", null, context, global::SnapTrace.SnapStatus.Return);
     }
