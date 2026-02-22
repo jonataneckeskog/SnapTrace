@@ -153,7 +153,6 @@ internal static class SnapTraceParser
         if (classSymbol.IsStatic) situation |= ClassSituation.Static;
         if (classSymbol.IsValueType) situation |= ClassSituation.IsStruct;
         if (classSymbol.IsRefLikeType) situation |= ClassSituation.IsRefStruct;
-        if (classSymbol.IsGenericType) situation |= ClassSituation.IsGeneric;
         if (classSymbol.IsUnsafe()) situation |= ClassSituation.Unsafe;
         return situation;
     }
@@ -163,7 +162,6 @@ internal static class SnapTraceParser
         var situation = MethodSituation.None;
         if (methodSymbol.IsStatic) situation |= MethodSituation.Static;
         if (methodSymbol.IsAsync) situation |= MethodSituation.Async;
-        if (methodSymbol.IsGenericMethod) situation |= MethodSituation.Generic;
         if (methodSymbol.IsUnsafe()) situation |= MethodSituation.Unsafe;
         if (methodSymbol.ReturnsByRef) situation |= MethodSituation.ReturnsRef;
         if (methodSymbol.ReturnsByRefReadonly) situation |= MethodSituation.ReturnsRefReadonly;

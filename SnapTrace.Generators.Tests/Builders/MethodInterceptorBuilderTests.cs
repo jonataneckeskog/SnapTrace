@@ -7,13 +7,13 @@ namespace SnapTrace.Generators.Tests.Builders;
 
 public class MethodInterceptorBuilderTests
 {
-    private string GetGeneratedOutput(Action<IndentedTextWriter> action)
+    private string GetGeneratedOutput(Action<IndentedTextWriter, string> action, string targetType = "global::MyNamespace.MyTestClass")
     {
         var sb = new StringBuilder();
         using (var sw = new StringWriter(sb))
         using (var writer = new IndentedTextWriter(sw, "    "))
         {
-            action(writer);
+            action(writer, targetType);
         }
         return sb.ToString();
     }
@@ -22,7 +22,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithBaseMethod_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", default!, default!);
+        var builder = new MethodInterceptorBuilder("MyTestMethod", default!, default!);
 
         // Act
         string actual = GetGeneratedOutput(builder.InternalBuild);
@@ -35,7 +35,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_StaticMethod_OnInstanceClass_HasNullContext()
     {
         // Arrange: Class is default (instance), but Method is Static
-        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", MethodSituation.Static, default!);
+        var builder = new MethodInterceptorBuilder("MyTestMethod", MethodSituation.Static, default!);
 
         // Act
         string actual = GetGeneratedOutput(builder.InternalBuild);
@@ -48,9 +48,8 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithGenericMethod_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", MethodSituation.Generic, default!)
-            .WithTypeParameters("<T>")
-            .WithWhereConstraints("where T : class");
+        var builder = new MethodInterceptorBuilder("MyTestMethod", MethodSituation.None, default!)
+            .WithGenerics("<T>", "where T : class");
 
         // Act
         string actual = GetGeneratedOutput(builder.InternalBuild);
@@ -63,10 +62,11 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithGenericClass_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass<T>", "MyTestMethod", default!, ClassSituation.IsGeneric);
+        var builder = new MethodInterceptorBuilder("MyTestMethod", default!, ClassSituation.None);
 
-        // Act
-        string actual = GetGeneratedOutput(builder.InternalBuild);
+        // Act: Passing a generic type string
+        string targetType = "global::MyNamespace.MyTestClass<T>";
+        string actual = GetGeneratedOutput(builder.InternalBuild, targetType);
 
         // Assert
         return Verify(actual);
@@ -81,7 +81,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithMethodSituation_GeneratesCorrectly(MethodSituation situation)
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", situation, default!);
+        var builder = new MethodInterceptorBuilder("MyTestMethod", situation, default!);
 
         // Act
         var actual = GetGeneratedOutput(builder.InternalBuild);
@@ -98,7 +98,7 @@ public class MethodInterceptorBuilderTests
     public Task Build_WithClassSituation_GeneratesCorrectly(ClassSituation situation)
     {
         // Arrange
-        var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", default!, situation);
+        var builder = new MethodInterceptorBuilder("MyTestMethod", default!, situation);
 
         // Act
         var actual = GetGeneratedOutput(builder.InternalBuild);
