@@ -36,7 +36,7 @@ public class ClassInterceptorBuilder
 
     public ClassInterceptorBuilder WithMethod(string name, MethodSituation situation, Action<MethodInterceptorBuilder> config)
     {
-        var mb = new MethodInterceptorBuilder(_className, name, situation);
+        var mb = new MethodInterceptorBuilder(_className, name, situation, _situation, _typeParameters);
 
         config(mb);
         _methods.Add(mb);

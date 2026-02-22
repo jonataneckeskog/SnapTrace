@@ -19,12 +19,16 @@ public class MethodInterceptorBuilder
     private string? _typeParameters;
     private string? _whereConstraints;
     private MethodSituation _situation;
+    private ClassSituation _classSituation;
+    private string? _classTypeParameters;
 
-    public MethodInterceptorBuilder(string className, string methodName, MethodSituation situation)
+    public MethodInterceptorBuilder(string className, string methodName, MethodSituation situation, ClassSituation classSituation, string? classTypeParameters = null)
     {
         _className = className;
         _methodName = methodName;
         _situation = situation;
+        _classSituation = classSituation;
+        _classTypeParameters = classTypeParameters;
     }
 
     // --- Standard additions ---
@@ -65,7 +69,19 @@ public class MethodInterceptorBuilder
 
     internal void InternalBuild(StringBuilder sb)
     {
-        // 1. Append InterceptsLocation
+        // 1. Evaluate Class and Method Situations
+        bool isMethodStatic = _situation.HasFlag(MethodSituation.Static);
+        bool isStaticClass = _classSituation.HasFlag(ClassSituation.Static);
+        bool isStruct = _classSituation.HasFlag(ClassSituation.IsStruct) || _classSituation.HasFlag(ClassSituation.IsRefStruct);
+
+        // Form the full class target (e.g., global::MyClass<T>)
+        string fullClassTarget = $"global::{_className}";
+        if (!string.IsNullOrWhiteSpace(_classTypeParameters))
+        {
+            fullClassTarget += _classTypeParameters;
+        }
+
+        // 1. Append InterceptsLocation (Note: fixed numbering)
         foreach (var loc in _locations)
         {
             sb.AppendLine($"    {loc}");
@@ -95,10 +111,11 @@ public class MethodInterceptorBuilder
 
         // 5. Construct Method Parameters
         var methodParams = new List<string>();
-        if (!_situation.HasFlag(MethodSituation.Static))
+        if (!isMethodStatic)
         {
-            // Inject 'this' for instance methods
-            methodParams.Add($"this global::{_className} @this");
+            // FIX: Inject 'this' for instance methods, handling structs and generics
+            string thisModifier = isStruct ? "ref " : "";
+            methodParams.Add($"this {thisModifier}{fullClassTarget} @this");
         }
 
         foreach (var p in _params)
@@ -136,36 +153,46 @@ public class MethodInterceptorBuilder
         }
 
         // 8. Save the context
-        sb.AppendLine("        var context = GetClassContext_SnapTrace();");
+        // FIX: Dynamically adjust the context call based on static/instance situations
+        if (isStaticClass)
+        {
+            sb.AppendLine("        var context = GetClassContext_SnapTrace();");
+        }
+        else if (isMethodStatic)
+        {
+            // Edge Case: Static method on an instance class. We have no '@this' to pass.
+            sb.AppendLine("        object? context = null;");
+        }
+        else
+        {
+            // Standard instance context call
+            string refModifier = isStruct ? "ref " : "";
+            sb.AppendLine($"        var context = GetClassContext_SnapTrace({refModifier}@this);");
+        }
         sb.AppendLine();
 
-        // 8. Record the Entry
+        // 9. Record the Entry
         sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, global::SnapTrace.SnapStatus.Call);");
 
-        // 9. EXECUTE ORIGINAL AND CAPTURE RETURN
+        // 10. EXECUTE ORIGINAL AND CAPTURE RETURN
+        // FIX: Use fullClassTarget to support statically calling generic classes
+        var target = isMethodStatic ? fullClassTarget : "@this";
+        string callArgs = string.Join(", ", _params.Select(p => p.Name));
+
         if (_return.IsVoid)
         {
-            // Call the original method on the '@this' instance or statically
-            var target = _situation.HasFlag(MethodSituation.Static) ? $"global::{_className}" : "@this";
-            sb.AppendLine($"        {target}.{_methodName}({string.Join(", ", _params.Select(p => p.Name))});");
-
-            // Record the exit
+            sb.AppendLine($"        {target}.{_methodName}({callArgs});");
             sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", null, context, global::SnapTrace.SnapStatus.Return);");
         }
         else
         {
-            var target = _situation.HasFlag(MethodSituation.Static) ? $"global::{_className}" : "@this";
-            sb.AppendLine($"        var result = {target}.{_methodName}({string.Join(", ", _params.Select(p => p.Name))});");
-
-            // Record the result
+            sb.AppendLine($"        var result = {target}.{_methodName}({callArgs});");
             sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, global::SnapTrace.SnapStatus.Return);");
             sb.AppendLine();
-
-            // Return the result
             sb.AppendLine("        return result;");
         }
 
-        // 10. Close the method
+        // 11. Close the method
         sb.AppendLine("    }");
     }
 

@@ -13,7 +13,7 @@
     public static void MyMethod_SnapTrace_void(this global::MyClass @this)
     {
         object? data = null;
-        var context = GetClassContext_SnapTrace();
+        var context = GetClassContext_SnapTrace(@this);
 
         CallRecord_SnapTrace(null!, "MyMethod", data, context, global::SnapTrace.SnapStatus.Call);
         @this.MyMethod();
