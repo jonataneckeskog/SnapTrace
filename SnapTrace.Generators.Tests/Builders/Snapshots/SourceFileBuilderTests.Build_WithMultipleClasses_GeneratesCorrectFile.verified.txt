@@ -6,9 +6,9 @@ internal static class MyClass1_SnapTrace
     extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);
 
     [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static string GetClassContext_SnapTrace(global::MyClass1 @this)
+    private static object? GetClassContext_SnapTrace(global::MyClass1 @this)
     {
-        return string.Empty;
+        return null;
     }
 
 }
@@ -19,9 +19,9 @@ internal static class MyClass2_SnapTrace
     extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);
 
     [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static string GetClassContext_SnapTrace(global::MyClass2 @this)
+    private static object? GetClassContext_SnapTrace(global::MyClass2 @this)
     {
-        return string.Empty;
+        return null;
     }
 
 }

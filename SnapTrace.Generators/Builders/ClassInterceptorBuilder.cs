@@ -74,18 +74,17 @@ public class ClassInterceptorBuilder
         // 3. The Updated Context Method
         sb.AppendLine("    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
         // We ALWAYS take @this now, so the call site in MethodInterceptorBuilder can remain consistent
-        sb.AppendLine($"    private static string GetClassContext_SnapTrace({targetType} @this)");
+        sb.AppendLine($"    private static object? GetClassContext_SnapTrace({targetType} @this)");
         sb.AppendLine("    {");
 
         if (_contextMembers.Count == 0)
         {
-            sb.AppendLine("        return string.Empty;");
+            sb.AppendLine("        return null;");
         }
         else
         {
-            // Use the generated accessors inside the string interpolation
-            var joined = string.Join(", ", _contextMembers.Select(m => $"{{Get_{m.Name}_SnapTrace(@this)}}"));
-            sb.AppendLine($"        return $\"({joined})\";");
+            var joined = string.Join(", ", _contextMembers.Select(m => $"{m.Name} = (object?)Get_{m.Name}_SnapTrace(@this)"));
+            sb.AppendLine($"        return new {{ {joined} }};");
         }
 
         sb.AppendLine("    }");
