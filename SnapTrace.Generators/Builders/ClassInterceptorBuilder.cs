@@ -11,7 +11,7 @@ public class ClassInterceptorBuilder
     private readonly string _fullyQualifiedName;
     private readonly string _className;
     private readonly ClassSituation _situation;
-    private string? _typeParameters;
+    private string _typeParameters = "";
     private string? _whereConstraints;
 
     private readonly HashSet<(string Name, string Type)> _contextMembers = new();
@@ -26,14 +26,7 @@ public class ClassInterceptorBuilder
 
     public ClassInterceptorBuilder WithMethod(string methodName, MethodSituation situation, Action<MethodInterceptorBuilder> config)
     {
-        // Create the full class name, with generics
-        string fullName = $"{_fullyQualifiedName}.{_className}";
-        if (_situation.HasFlag(ClassSituation.IsGeneric))
-        {
-            fullName = $"{_fullyQualifiedName}.{_className}<{_typeParameters}>";
-        }
-
-        var mb = new MethodInterceptorBuilder(fullName, methodName, situation, _situation);
+        var mb = new MethodInterceptorBuilder(methodName, situation, _situation);
         config(mb);
         _methods.Add(mb);
         return this;
@@ -45,14 +38,15 @@ public class ClassInterceptorBuilder
         return this;
     }
 
-    public ClassInterceptorBuilder WithTypeParameters(string typeParameters)
+    public ClassInterceptorBuilder WithGenerics(string typeParameters, string? whereConstraints = null)
     {
-        _typeParameters = typeParameters;
-        return this;
-    }
+        if (string.IsNullOrWhiteSpace(typeParameters))
+            throw new ArgumentException("Type parameters cannot be empty.");
 
-    public ClassInterceptorBuilder WithWhereConstraints(string whereConstraints)
-    {
+        if (typeParameters[0] != '<' || typeParameters[typeParameters.Length - 1] != '>')
+            throw new ArgumentException("Type parameters must be enclosed in angle brackets, e.g., '<T>'.");
+
+        _typeParameters = typeParameters;
         _whereConstraints = whereConstraints;
         return this;
     }
@@ -62,23 +56,13 @@ public class ClassInterceptorBuilder
         // 1. Evaluate situations
         bool isStatic = _situation.HasFlag(ClassSituation.Static);
         bool isStruct = _situation.HasFlag(ClassSituation.IsStruct) || _situation.HasFlag(ClassSituation.IsRefStruct);
-        bool isGeneric = _situation.HasFlag(ClassSituation.IsGeneric);
+        bool isGeneric = !string.IsNullOrWhiteSpace(_typeParameters);
 
         // 2. Build the target type safely
-        string targetType = $"{_fullyQualifiedName}.{_className}";
-
-        if (isGeneric && !string.IsNullOrWhiteSpace(_typeParameters))
-        {
-            string generics = _typeParameters!.Trim().StartsWith("<") ? _typeParameters : $"<{_typeParameters}>";
-            targetType += generics;
-        }
+        string targetType = $"{_fullyQualifiedName}.{_className}{_typeParameters}";
 
         // 3. Class declaration
-        string classDecl = $"internal static class {_className}_SnapTrace";
-        if (isGeneric && !string.IsNullOrWhiteSpace(_typeParameters))
-        {
-            classDecl += _typeParameters!.Trim().StartsWith("<") ? _typeParameters : $"<{_typeParameters}>";
-        }
+        string classDecl = $"internal static class {_className}_SnapTrace{_typeParameters}";
 
         writer.WriteLine(classDecl);
 
@@ -133,7 +117,7 @@ public class ClassInterceptorBuilder
         foreach (var __method in _methods)
         {
             writer.WriteLine();
-            __method.InternalBuild(writer);
+            __method.InternalBuild(writer, targetType);
         }
 
         writer.Indent--;

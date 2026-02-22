@@ -10,5 +10,4 @@ public enum ClassSituation
     Unsafe = 1 << 1,      // Class relies on unsafe context
     IsStruct = 1 << 2,    // Requires 'this ref' in the interceptor signature
     IsRefStruct = 1 << 3, // Requires 'this ref' AND prevents async interceptors
-    IsGeneric = 1 << 4    // Class has <T>, so interceptor needs those type arguments
 }

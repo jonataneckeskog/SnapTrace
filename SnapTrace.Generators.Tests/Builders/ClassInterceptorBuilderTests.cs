@@ -79,9 +79,8 @@ public class ClassInterceptorBuilderTests
     public Task Build_WithGenerics_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.IsGeneric)
-            .WithTypeParameters("<T>")
-            .WithWhereConstraints("where T : class");
+        var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None)
+            .WithGenerics("<T>", "where T : class");
 
         // Act
         var actual = GetGeneratedOutput(builder.InternalBuild);

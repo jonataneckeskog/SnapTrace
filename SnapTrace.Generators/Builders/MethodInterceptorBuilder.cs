@@ -1,3 +1,4 @@
+using System;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,16 +14,14 @@ public class MethodInterceptorBuilder
     private readonly List<string> _locations = new();
 
     // Method Metadata
-    private readonly string _fullyQualifiedName;
     private readonly string _methodName;
-    private string? _typeParameters;
+    private string _typeParameters = "";
     private string? _whereConstraints;
     private MethodSituation _situation;
     private ClassSituation _classSituation;
 
-    public MethodInterceptorBuilder(string fullyQualifiedName, string methodName, MethodSituation situation, ClassSituation classSituation)
+    public MethodInterceptorBuilder(string methodName, MethodSituation situation, ClassSituation classSituation)
     {
-        _fullyQualifiedName = fullyQualifiedName;
         _methodName = methodName;
         _situation = situation;
         _classSituation = classSituation;
@@ -37,14 +36,15 @@ public class MethodInterceptorBuilder
         return this;
     }
 
-    public MethodInterceptorBuilder WithTypeParameters(string typeParameters)
+    public MethodInterceptorBuilder WithGenerics(string typeParameters, string? whereConstraints = null)
     {
-        _typeParameters = typeParameters;
-        return this;
-    }
+        if (string.IsNullOrWhiteSpace(typeParameters))
+            throw new ArgumentException("Type parameters cannot be empty.");
 
-    public MethodInterceptorBuilder WithWhereConstraints(string whereConstraints)
-    {
+        if (typeParameters[0] != '<' || typeParameters[typeParameters.Length - 1] != '>')
+            throw new ArgumentException("Type parameters must be enclosed in angle brackets, e.g., '<T>'.");
+
+        _typeParameters = typeParameters;
         _whereConstraints = whereConstraints;
         return this;
     }
@@ -64,7 +64,7 @@ public class MethodInterceptorBuilder
 
     // --- The Build Engine ---
 
-    internal void InternalBuild(IndentedTextWriter writer)
+    internal void InternalBuild(IndentedTextWriter writer, string targetType)
     {
         // 1. Evaluate Class and Method Situations
         bool isMethodStatic = _situation.HasFlag(MethodSituation.Static);
@@ -104,7 +104,7 @@ public class MethodInterceptorBuilder
         if (!isMethodStatic)
         {
             string thisModifier = isStruct ? "ref " : "";
-            methodParams.Add($"{thisModifier}{_fullyQualifiedName} @this");
+            methodParams.Add($"{thisModifier}{targetType} @this");
         }
 
         foreach (var p in _params)
@@ -115,11 +115,13 @@ public class MethodInterceptorBuilder
         }
 
         // 7. Write Method Signature
+        bool IsGeneric = !string.IsNullOrEmpty(_typeParameters);
+
         writer.Write($"{modifiers} {returnStr} {interceptorName}");
-        if (!string.IsNullOrEmpty(_typeParameters)) writer.Write($"<{_typeParameters}>");
+        if (IsGeneric) writer.Write($"{_typeParameters}");
         writer.Write($"({string.Join(", ", methodParams)})");
 
-        if (!string.IsNullOrEmpty(_whereConstraints))
+        if (IsGeneric && !string.IsNullOrEmpty(_whereConstraints))
         {
             writer.Write($" {_whereConstraints}");
         }
@@ -167,7 +169,7 @@ public class MethodInterceptorBuilder
         writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, global::SnapTrace.SnapStatus.Call);");
 
         // 11. EXECUTE ORIGINAL AND CAPTURE RETURN
-        var target = isMethodStatic ? _fullyQualifiedName : "@this";
+        var target = isMethodStatic ? targetType : "@this";
         string callArgs = string.Join(", ", _params.Select(p => p.Name));
 
         if (_return.IsVoid)
