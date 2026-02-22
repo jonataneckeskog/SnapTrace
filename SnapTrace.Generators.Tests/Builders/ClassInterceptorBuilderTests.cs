@@ -55,7 +55,7 @@ public class ClassInterceptorBuilderTests
     }
 
     [Fact]
-    public Task Build_ClassWithContext_GeneratesCorrectly()
+    public Task Build_WithContext_GeneratesCorrectly()
     {
         // Arrange
         var builder = new ClassInterceptorBuilder("MyClass", ClassSituation.None)
@@ -72,12 +72,12 @@ public class ClassInterceptorBuilderTests
     }
 
     [Fact]
-    public Task Build_ClassWithGenerics_GeneratesCorrectly()
+    public Task Build_WithGenerics_GeneratesCorrectly()
     {
         // Arrange
         var builder = new ClassInterceptorBuilder("MyClass", ClassSituation.IsGeneric)
             .WithTypeParameters("<T>")
-            .WithWhereConstraints("where T : new()");
+            .WithWhereConstraints("where T : class");
         var sb = new StringBuilder();
 
         // Act
@@ -86,5 +86,24 @@ public class ClassInterceptorBuilderTests
 
         // Assert
         return Verify(actual);
+    }
+
+    [Theory]
+    [InlineData(ClassSituation.Static)]
+    [InlineData(ClassSituation.Unsafe)]
+    [InlineData(ClassSituation.IsStruct)]
+    [InlineData(ClassSituation.IsRefStruct)]
+    public Task Build_WithSituation_GeneratesCorrectly(ClassSituation situation)
+    {
+        // Arrange
+        var builder = new ClassInterceptorBuilder("MyClass", situation);
+        var sb = new StringBuilder();
+
+        // Act
+        builder.InternalBuild(sb);
+        var actual = sb.ToString();
+
+        // Assert
+        return Verify(actual).UseParameters(situation);
     }
 }
