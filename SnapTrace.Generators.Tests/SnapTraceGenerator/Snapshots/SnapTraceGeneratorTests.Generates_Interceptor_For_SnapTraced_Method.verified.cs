@@ -17,7 +17,7 @@ namespace TestApp
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void DoWork_SnapTrace_void_string(global::TestApp.MyService @this, string input)
         {
-            object? data = (input: input);
+            object? data = new object[] { /* input */ input };
             var context = GetClassContext_SnapTrace(@this);
 
             CallRecord_SnapTrace(null!, "DoWork", data, context, global::SnapTrace.SnapStatus.Call);

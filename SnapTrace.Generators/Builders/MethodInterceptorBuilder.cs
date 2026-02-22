@@ -96,8 +96,15 @@ public class MethodInterceptorBuilder
         if (_situation.HasFlag(MethodSituation.Unsafe)) modifiers += " unsafe";
 
         var returnStr = _return.Type;
-        if (_situation.HasFlag(MethodSituation.ReturnsRef)) returnStr = "ref " + returnStr;
-        else if (_situation.HasFlag(MethodSituation.ReturnsRefReadonly)) returnStr = "ref readonly " + returnStr;
+        bool isVoid = returnStr == "void" || returnStr == "System.Void" || returnStr == "global::System.Void";
+
+        if (!isVoid)
+        {
+            if (_situation.HasFlag(MethodSituation.ReturnsRef))
+                returnStr = "ref " + returnStr;
+            else if (_situation.HasFlag(MethodSituation.ReturnsRefReadonly))
+                returnStr = "ref readonly " + returnStr;
+        }
 
         // 6. Construct Method Parameters
         var methodParams = new List<string>();
@@ -130,7 +137,7 @@ public class MethodInterceptorBuilder
         writer.WriteLine("{");
         writer.Indent++;
 
-        // 8. Save method parameters to a tuple
+        // 8. Save method parameters to an object array
         writer.Write("object? data = ");
         if (_params.Count == 0)
         {
@@ -138,15 +145,20 @@ public class MethodInterceptorBuilder
         }
         else
         {
-            writer.Write("(");
-            var tupleParts = _params.Select(p =>
+            writer.Write("new object[] { ");
+            var arrayParts = _params.Select(p =>
             {
-                if (p.Redacted) return $"{p.Name}: \"[REDACTED]\"";
-                if (p.DeepCopy) return $"{p.Name}: {p.Name} is null ? default : global::System.Text.Json.JsonSerializer.Deserialize<{p.Type}>(global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({p.Name}))";
-                return $"{p.Name}: {p.Name}";
+                if (p.Redacted)
+                    return $"/* {p.Name} */ \"[REDACTED]\"";
+
+                if (p.DeepCopy)
+                    return $"/* {p.Name} */ {p.Name} is null ? default : global::System.Text.Json.JsonSerializer.Deserialize<{p.Type}>(global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({p.Name}))";
+
+                return $"/* {p.Name} */ {p.Name}";
             });
-            writer.Write(string.Join(", ", tupleParts));
-            writer.WriteLine(");");
+
+            writer.Write(string.Join(", ", arrayParts));
+            writer.WriteLine(" };");
         }
 
         // 9. Save the context
