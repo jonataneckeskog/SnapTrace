@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace SnapTrace.Core.Attributes;
+namespace SnapTrace;
 
 /// <summary>
 /// Opts a class or method into SnapTrace recording.

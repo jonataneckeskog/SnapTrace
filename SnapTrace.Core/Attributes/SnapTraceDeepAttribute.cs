@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace SnapTrace.Core.Attributes;
+namespace SnapTrace;
 
 /// <summary>
 /// Forces a deep copy of a reference type to be stored in the trace buffer. This is useful

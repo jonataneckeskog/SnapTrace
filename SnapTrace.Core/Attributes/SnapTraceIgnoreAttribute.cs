@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace SnapTrace.Core.Attributes;
+namespace SnapTrace;
 
 /// <summary>
 /// Excludes a specific target from the trace.
