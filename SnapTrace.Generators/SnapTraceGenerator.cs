@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SnapTrace.Generators.Builders;
 using SnapTrace.Generators.Definitions;
+using SnapTrace.Generators.Extensions;
 
 namespace SnapTrace.Generators;
 
@@ -254,32 +255,3 @@ public class SnapTraceGenerator : IIncrementalGenerator
         context.AddSource($"{classToGenerate.className}.g.cs", sourceCode);
     }
 }
-
-internal static class SymbolExtensions
-{
-    public static bool IsUnsafe(this ISymbol symbol)
-    {
-        return symbol.DeclaringSyntaxReferences
-            .Select(syntaxRef => syntaxRef.GetSyntax())
-            .Any(syntaxNode => syntaxNode.ChildTokens().Any(token => token.IsKind(SyntaxKind.UnsafeKeyword)));
-    }
-}
-
-internal record ClassToGenerate(
-    string fullyQualifiedName,
-    string className,
-    string @namespace,
-    ClassSituation situation,
-    string? typeParameters,
-    string? whereConstraints,
-    ImmutableArray<MethodToGenerate> methods,
-    ImmutableArray<ContextMemberToGenerate> contextMembers);
-
-internal record MethodToGenerate(
-    string Name,
-    MethodSituation Situation,
-    ImmutableArray<ParameterDefinition> Parameters,
-    ReturnDefinition ReturnDefinition,
-    string? GenericConstraints);
-    
-internal record ContextMemberToGenerate(string Name, string Type);
