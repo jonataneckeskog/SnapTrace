@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 namespace SnapTrace.Generators;
 
 [Generator(LanguageNames.CSharp)]
-public class MyInterceptorGenerator : IIncrementalGenerator
+public class SnapTraceGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
