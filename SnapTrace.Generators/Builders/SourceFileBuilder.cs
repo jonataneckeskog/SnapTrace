@@ -1,8 +1,9 @@
 using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
-using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Builders;
 
@@ -26,13 +27,19 @@ public class SourceFileBuilder
     {
         StringBuilder sb = new();
 
-        sb.AppendLine("using global::SnapTrace;");
-        sb.AppendLine();
-
-        foreach (var (__namespace, i) in _namespaces.Select((value, index) => (value, index)))
+        using (var stringWriter = new StringWriter(sb))
+        using (var writer = new IndentedTextWriter(stringWriter, "    "))
         {
-            __namespace.Value.InternalBuild(sb);
-            if (i < _namespaces.Count - 1) sb.AppendLine();
+            // 1. Global Usings
+            writer.WriteLine("using global::SnapTrace;");
+
+            // 2. Iterate through namespaces
+            var namespacesList = _namespaces.Values.ToList();
+            foreach (var __namespace in namespacesList)
+            {
+                writer.WriteLine();
+                __namespace.InternalBuild(writer);
+            }
         }
 
         return sb.ToString();

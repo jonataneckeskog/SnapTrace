@@ -1,7 +1,6 @@
-using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Builders;
@@ -65,23 +64,23 @@ public class MethodInterceptorBuilder
 
     // --- The Build Engine ---
 
-    internal void InternalBuild(StringBuilder sb)
+    internal void InternalBuild(IndentedTextWriter writer)
     {
         // 1. Evaluate Class and Method Situations
         bool isMethodStatic = _situation.HasFlag(MethodSituation.Static);
         bool isStaticClass = _classSituation.HasFlag(ClassSituation.Static);
         bool isStruct = _classSituation.HasFlag(ClassSituation.IsStruct) || _classSituation.HasFlag(ClassSituation.IsRefStruct);
 
-        // 1. Append InterceptsLocation (Note: fixed numbering)
+        // 2. Append InterceptsLocation
         foreach (var loc in _locations)
         {
-            sb.AppendLine($"    {loc}");
+            writer.WriteLine(loc);
         }
 
-        // 2. Append method options
-        sb.AppendLine("    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+        // 3. Append method options
+        writer.WriteLine("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 
-        // 3. Construct the strict interceptor method name
+        // 4. Construct the strict interceptor method name
         var safeReturnType = GetSafeTypeName(_return.Type);
         var interceptorName = $"{_methodName}_SnapTrace_{safeReturnType}";
 
@@ -91,7 +90,7 @@ public class MethodInterceptorBuilder
             interceptorName += $"_{paramPart}";
         }
 
-        // 4. Resolve MethodSituation (Modifiers & Ref Returns)
+        // 5. Resolve MethodSituation (Modifiers & Ref Returns)
         var modifiers = "public static";
         if (_situation.HasFlag(MethodSituation.Async)) modifiers += " async";
         if (_situation.HasFlag(MethodSituation.Unsafe)) modifiers += " unsafe";
@@ -100,7 +99,7 @@ public class MethodInterceptorBuilder
         if (_situation.HasFlag(MethodSituation.ReturnsRef)) returnStr = "ref " + returnStr;
         else if (_situation.HasFlag(MethodSituation.ReturnsRefReadonly)) returnStr = "ref readonly " + returnStr;
 
-        // 5. Construct Method Parameters
+        // 6. Construct Method Parameters
         var methodParams = new List<string>();
         if (!isMethodStatic)
         {
@@ -115,73 +114,78 @@ public class MethodInterceptorBuilder
             methodParams.Add($"{prefix}{p.Type} {p.Name}");
         }
 
-        // 6. Write Method Signature
-        sb.Append($"    {modifiers} {returnStr} {interceptorName}");
-        if (!string.IsNullOrEmpty(_typeParameters)) sb.Append($"<{_typeParameters}>");
-        sb.Append($"({string.Join(", ", methodParams)})");
-        if (!string.IsNullOrEmpty(_whereConstraints)) sb.Append($" {_whereConstraints}");
-        sb.AppendLine();
-        sb.AppendLine("    {");
+        // 7. Write Method Signature
+        writer.Write($"{modifiers} {returnStr} {interceptorName}");
+        if (!string.IsNullOrEmpty(_typeParameters)) writer.Write($"<{_typeParameters}>");
+        writer.Write($"({string.Join(", ", methodParams)})");
 
-        // 7. Save method parameters to a tuple
-        sb.Append("        object? data = ");
+        if (!string.IsNullOrEmpty(_whereConstraints))
+        {
+            writer.Write($" {_whereConstraints}");
+        }
+
+        writer.WriteLine();
+        writer.WriteLine("{");
+        writer.Indent++;
+
+        // 8. Save method parameters to a tuple
+        writer.Write("object? data = ");
         if (_params.Count == 0)
         {
-            sb.AppendLine("null;");
+            writer.WriteLine("null;");
         }
         else
         {
-            sb.Append("(");
+            writer.Write("(");
             var tupleParts = _params.Select(p =>
             {
                 if (p.Redacted) return $"{p.Name}: \"[REDACTED]\"";
                 if (p.DeepCopy) return $"{p.Name}: {p.Name} is null ? default : global::System.Text.Json.JsonSerializer.Deserialize<{p.Type}>(global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({p.Name}))";
                 return $"{p.Name}: {p.Name}";
             });
-            sb.Append(string.Join(", ", tupleParts));
-            sb.AppendLine(");");
+            writer.Write(string.Join(", ", tupleParts));
+            writer.WriteLine(");");
         }
 
-        // 8. Save the context
+        // 9. Save the context
         if (isStaticClass)
         {
-            sb.AppendLine("        var context = GetClassContext_SnapTrace();");
+            writer.WriteLine("var context = GetClassContext_SnapTrace();");
         }
         else if (isMethodStatic)
         {
-            // Edge Case: Static method on an instance class. We have no '@this' to pass.
-            sb.AppendLine("        object? context = null;");
+            writer.WriteLine("object? context = null;");
         }
         else
         {
-            // Standard instance context call
             string refModifier = isStruct ? "ref " : "";
-            sb.AppendLine($"        var context = GetClassContext_SnapTrace({refModifier}@this);");
+            writer.WriteLine($"var context = GetClassContext_SnapTrace({refModifier}@this);");
         }
-        sb.AppendLine();
+        writer.WriteLine();
 
-        // 9. Record the Entry
-        sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, global::SnapTrace.SnapStatus.Call);");
+        // 10. Record the Entry
+        writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, global::SnapTrace.SnapStatus.Call);");
 
-        // 10. EXECUTE ORIGINAL AND CAPTURE RETURN
+        // 11. EXECUTE ORIGINAL AND CAPTURE RETURN
         var target = isMethodStatic ? _fullyQualifiedName : "@this";
         string callArgs = string.Join(", ", _params.Select(p => p.Name));
 
         if (_return.IsVoid)
         {
-            sb.AppendLine($"        {target}.{_methodName}({callArgs});");
-            sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", null, context, global::SnapTrace.SnapStatus.Return);");
+            writer.WriteLine($"{target}.{_methodName}({callArgs});");
+            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", null, context, global::SnapTrace.SnapStatus.Return);");
         }
         else
         {
-            sb.AppendLine($"        var result = {target}.{_methodName}({callArgs});");
-            sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, global::SnapTrace.SnapStatus.Return);");
-            sb.AppendLine();
-            sb.AppendLine("        return result;");
+            writer.WriteLine($"var result = {target}.{_methodName}({callArgs});");
+            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, global::SnapTrace.SnapStatus.Return);");
+            writer.WriteLine();
+            writer.WriteLine("return result;");
         }
 
-        // 11. Close the method
-        sb.AppendLine("    }");
+        // 12. Close the method
+        writer.Indent--;
+        writer.WriteLine("}");
     }
 
     private static string GetSafeTypeName(string type)

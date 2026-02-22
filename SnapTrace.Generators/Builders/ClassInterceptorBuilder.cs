@@ -1,7 +1,7 @@
 using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Builders;
@@ -24,6 +24,27 @@ public class ClassInterceptorBuilder
         _situation = situation;
     }
 
+    public ClassInterceptorBuilder WithMethod(string methodName, MethodSituation situation, Action<MethodInterceptorBuilder> config)
+    {
+        // Create the full class name, with generics
+        string fullName = $"{_fullyQualifiedName}.{_className}";
+        if (_situation.HasFlag(ClassSituation.IsGeneric))
+        {
+            fullName = $"{_fullyQualifiedName}.{_className}<{_typeParameters}>";
+        }
+
+        var mb = new MethodInterceptorBuilder(fullName, methodName, situation, _situation);
+        config(mb);
+        _methods.Add(mb);
+        return this;
+    }
+
+    public ClassInterceptorBuilder AddContextMember(string name, string type)
+    {
+        _contextMembers.Add((name, type));
+        return this;
+    }
+
     public ClassInterceptorBuilder WithTypeParameters(string typeParameters)
     {
         _typeParameters = typeParameters;
@@ -36,69 +57,47 @@ public class ClassInterceptorBuilder
         return this;
     }
 
-    public ClassInterceptorBuilder WithMethod(string name, MethodSituation situation, Action<MethodInterceptorBuilder> config)
-    {
-        // 1. Ensure we have Namespace.ClassName
-        string baseTypeName = $"{_fullyQualifiedName}.{_className}";
-
-        // 2. Add generics only if they exist, and handle the brackets cleanly
-        string typeWithGenerics = !string.IsNullOrWhiteSpace(_typeParameters)
-            ? $"{baseTypeName}<{_typeParameters}>"
-            : baseTypeName;
-
-        // 3. Ensure "global::" is only at the very start if not already present
-        var fullName = typeWithGenerics.StartsWith("global::")
-            ? typeWithGenerics
-            : $"global::{typeWithGenerics}";
-
-        var mb = new MethodInterceptorBuilder(fullName, name, situation, _situation);
-
-        config(mb);
-        _methods.Add(mb);
-        return this;
-    }
-
-    public ClassInterceptorBuilder AddContextMember(string memberName, string type = "object?")
-    {
-        _contextMembers.Add((memberName, type));
-        return this;
-    }
-
-    internal void InternalBuild(StringBuilder sb)
+    internal void InternalBuild(IndentedTextWriter writer)
     {
         // 1. Evaluate situations
         bool isStatic = _situation.HasFlag(ClassSituation.Static);
         bool isStruct = _situation.HasFlag(ClassSituation.IsStruct) || _situation.HasFlag(ClassSituation.IsRefStruct);
         bool isGeneric = _situation.HasFlag(ClassSituation.IsGeneric);
 
-        // 2. Build the target type, appending generics if present
-        string targetType = $"{_fullyQualifiedName}.{_className}"; // e.g., "global::MyNamespace.MyClass"
+        // 2. Build the target type safely
+        string targetType = $"{_fullyQualifiedName}.{_className}";
+
         if (isGeneric && !string.IsNullOrWhiteSpace(_typeParameters))
         {
-            targetType += _typeParameters; // Result: "global::MyNamespace.MyClass<T>"
+            string generics = _typeParameters!.Trim().StartsWith("<") ? _typeParameters : $"<{_typeParameters}>";
+            targetType += generics;
         }
 
-        // 3. Class declaration with generics and constraints
+        // 3. Class declaration
         string classDecl = $"internal static class {_className}_SnapTrace";
         if (isGeneric && !string.IsNullOrWhiteSpace(_typeParameters))
         {
-            classDecl += _typeParameters;
+            classDecl += _typeParameters!.Trim().StartsWith("<") ? _typeParameters : $"<{_typeParameters}>";
         }
 
-        sb.AppendLine(classDecl);
+        writer.WriteLine(classDecl);
+
         if (isGeneric && !string.IsNullOrWhiteSpace(_whereConstraints))
         {
-            sb.AppendLine($"    {_whereConstraints}");
+            writer.Indent++;
+            writer.WriteLine(_whereConstraints);
+            writer.Indent--;
         }
-        sb.AppendLine("{");
+
+        writer.WriteLine("{");
+        writer.Indent++;
 
         // 4. Static Record Accessor
-        sb.AppendLine("    [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = \"Record\")]");
-        sb.AppendLine("    extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);");
-        sb.AppendLine();
+        writer.WriteLine("[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = \"Record\")]");
+        writer.WriteLine("extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);");
+        writer.WriteLine();
 
-        // Determine parameters based on the class situation
-        // Static classes have no 'this'. Structs pass 'this' by ref.
+        // Parameter logic
         string thisParam = isStatic ? "" : (isStruct ? $"ref {targetType} @this" : $"{targetType} @this");
         string thisArg = isStatic ? "" : (isStruct ? "ref @this" : "@this");
 
@@ -106,37 +105,38 @@ public class ClassInterceptorBuilder
         foreach (var member in _contextMembers)
         {
             string accessorKind = isStatic ? "StaticField" : "Field";
-
-            sb.AppendLine($"    [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.{accessorKind}, Name = \"{member.Name}\")]");
-            sb.AppendLine($"    extern static ref {member.Type} Get_{member.Name}_SnapTrace({thisParam});");
-            sb.AppendLine();
+            writer.WriteLine($"[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.{accessorKind}, Name = \"{member.Name}\")]");
+            writer.WriteLine($"extern static ref {member.Type} Get_{member.Name}_SnapTrace({thisParam});");
+            writer.WriteLine();
         }
 
-        // 6. The Updated Context Method
-        sb.AppendLine("    [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-        sb.AppendLine($"    private static object? GetClassContext_SnapTrace({thisParam})");
-        sb.AppendLine("    {");
+        // 6. The Context Method
+        writer.WriteLine("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+        writer.WriteLine($"private static object? GetClassContext_SnapTrace({thisParam})");
+        writer.WriteLine("{");
+        writer.Indent++;
 
         if (_contextMembers.Count == 0)
         {
-            sb.AppendLine("        return null;");
+            writer.WriteLine("return null;");
         }
         else
         {
             var joinedArgs = string.Join(", ", _contextMembers.Select(m => $"{m.Name} = (object?)Get_{m.Name}_SnapTrace({thisArg})"));
-            sb.AppendLine($"        return new {{ {joinedArgs} }};");
+            writer.WriteLine($"return new {{ {joinedArgs} }};");
         }
 
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        writer.Indent--;
+        writer.WriteLine("}");
 
-        // 7. Build the individual method interceptors
-        foreach (var (method, i) in _methods.Select((value, index) => (value, index)))
+        // 7. Pass the writer along to method builders
+        foreach (var __method in _methods)
         {
-            method.InternalBuild(sb);
-            if (i < _methods.Count - 1) sb.AppendLine();
+            writer.WriteLine();
+            __method.InternalBuild(writer);
         }
 
-        sb.AppendLine("}");
+        writer.Indent--;
+        writer.WriteLine("}");
     }
 }
