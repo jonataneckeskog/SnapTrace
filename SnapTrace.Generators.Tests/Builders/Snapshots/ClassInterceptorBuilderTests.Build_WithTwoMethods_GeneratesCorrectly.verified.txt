@@ -10,7 +10,7 @@
     }
 
     [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void MyMethod1_SnapTrace_void(this global::MyClass @this)
+    public static void MyMethod1_SnapTrace_void(global::MyClass @this)
     {
         object? data = null;
         var context = GetClassContext_SnapTrace(@this);
@@ -21,7 +21,7 @@
     }
 
     [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void MyMethod2_SnapTrace_void(this global::MyClass @this)
+    public static void MyMethod2_SnapTrace_void(global::MyClass @this)
     {
         object? data = null;
         var context = GetClassContext_SnapTrace(@this);
