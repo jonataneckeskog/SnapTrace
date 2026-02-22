@@ -1,3 +1,4 @@
+using System.CodeDom.Compiler;
 using System.Text;
 using SnapTrace.Generators.Builders;
 using SnapTrace.Generators.Definitions;
@@ -6,16 +7,25 @@ namespace SnapTrace.Generators.Tests.Builders;
 
 public class ClassInterceptorBuilderTests
 {
+    private string GetGeneratedOutput(Action<IndentedTextWriter> action)
+    {
+        var sb = new StringBuilder();
+        using (var sw = new StringWriter(sb))
+        using (var writer = new IndentedTextWriter(sw, "    "))
+        {
+            action(writer);
+        }
+        return sb.ToString();
+    }
+
     [Fact]
     public Task Build_SimpleClass_GeneratesCorrectly()
     {
         // Arrange
         var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None);
-        var sb = new StringBuilder();
 
         // Act
-        builder.InternalBuild(sb);
-        var actual = sb.ToString();
+        var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual);
@@ -27,11 +37,9 @@ public class ClassInterceptorBuilderTests
         // Arrange
         var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None)
             .WithMethod("MyMethod", MethodSituation.None, m => { });
-        var sb = new StringBuilder();
 
         // Act
-        builder.InternalBuild(sb);
-        var actual = sb.ToString();
+        var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual);
@@ -44,11 +52,9 @@ public class ClassInterceptorBuilderTests
         var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None)
             .WithMethod("MyMethod1", MethodSituation.None, m => { })
             .WithMethod("MyMethod2", MethodSituation.None, m => { });
-        var sb = new StringBuilder();
 
         // Act
-        builder.InternalBuild(sb);
-        var actual = sb.ToString();
+        var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual);
@@ -59,13 +65,11 @@ public class ClassInterceptorBuilderTests
     {
         // Arrange
         var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None)
-            .AddContextMember("_balance")
-            .AddContextMember("_name");
-        var sb = new StringBuilder();
+            .AddContextMember("_balance", "double")
+            .AddContextMember("_name", "string");
 
         // Act
-        builder.InternalBuild(sb);
-        var actual = sb.ToString();
+        var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual);
@@ -78,11 +82,9 @@ public class ClassInterceptorBuilderTests
         var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.IsGeneric)
             .WithTypeParameters("<T>")
             .WithWhereConstraints("where T : class");
-        var sb = new StringBuilder();
 
         // Act
-        builder.InternalBuild(sb);
-        var actual = sb.ToString();
+        var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual);
@@ -97,11 +99,9 @@ public class ClassInterceptorBuilderTests
     {
         // Arrange
         var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", situation);
-        var sb = new StringBuilder();
 
         // Act
-        builder.InternalBuild(sb);
-        var actual = sb.ToString();
+        var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual).UseParameters(situation);

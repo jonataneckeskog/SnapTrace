@@ -1,3 +1,4 @@
+using System.CodeDom.Compiler;
 using System.Text;
 using SnapTrace.Generators.Builders;
 using SnapTrace.Generators.Definitions;
@@ -6,17 +7,25 @@ namespace SnapTrace.Generators.Tests.Builders;
 
 public class MethodInterceptorBuilderTests
 {
+    private string GetGeneratedOutput(Action<IndentedTextWriter> action)
+    {
+        var sb = new StringBuilder();
+        using (var sw = new StringWriter(sb))
+        using (var writer = new IndentedTextWriter(sw, "    "))
+        {
+            action(writer);
+        }
+        return sb.ToString();
+    }
+
     [Fact]
     public Task Build_WithBaseMethod_GeneratesCorrectly()
     {
         // Arrange
         var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", default!, default!);
 
-        var sb = new StringBuilder();
-
         // Act
-        builder.InternalBuild(sb);
-        string actual = sb.ToString();
+        string actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual);
@@ -27,13 +36,12 @@ public class MethodInterceptorBuilderTests
     {
         // Arrange: Class is default (instance), but Method is Static
         var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", MethodSituation.Static, default!);
-        var sb = new StringBuilder();
 
         // Act
-        builder.InternalBuild(sb);
+        string actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(sb.ToString());
+        return Verify(actual);
     }
 
     [Fact]
@@ -44,11 +52,8 @@ public class MethodInterceptorBuilderTests
             .WithTypeParameters("<T>")
             .WithWhereConstraints("where T : class");
 
-        var sb = new StringBuilder();
-
         // Act
-        builder.InternalBuild(sb);
-        string actual = sb.ToString();
+        string actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual);
@@ -59,11 +64,9 @@ public class MethodInterceptorBuilderTests
     {
         // Arrange
         var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass<T>", "MyTestMethod", default!, ClassSituation.IsGeneric);
-        var sb = new StringBuilder();
 
         // Act
-        builder.InternalBuild(sb);
-        string actual = sb.ToString();
+        string actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual);
@@ -79,11 +82,9 @@ public class MethodInterceptorBuilderTests
     {
         // Arrange
         var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", situation, default!);
-        var sb = new StringBuilder();
 
         // Act
-        builder.InternalBuild(sb);
-        var actual = sb.ToString();
+        var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual).UseParameters(situation);
@@ -98,11 +99,9 @@ public class MethodInterceptorBuilderTests
     {
         // Arrange
         var builder = new MethodInterceptorBuilder("global::MyNamespace.MyTestClass", "MyTestMethod", default!, situation);
-        var sb = new StringBuilder();
 
         // Act
-        builder.InternalBuild(sb);
-        var actual = sb.ToString();
+        var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
         return Verify(actual).UseParameters(situation);
