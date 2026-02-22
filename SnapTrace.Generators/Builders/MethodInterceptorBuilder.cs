@@ -14,21 +14,19 @@ public class MethodInterceptorBuilder
     private readonly List<string> _locations = new();
 
     // Method Metadata
+    private readonly string _fullyQualifiedName;
     private readonly string _methodName;
-    private readonly string _className;
     private string? _typeParameters;
     private string? _whereConstraints;
     private MethodSituation _situation;
     private ClassSituation _classSituation;
-    private string? _classTypeParameters;
 
-    public MethodInterceptorBuilder(string className, string methodName, MethodSituation situation, ClassSituation classSituation, string? classTypeParameters = null)
+    public MethodInterceptorBuilder(string fullyQualifiedName, string methodName, MethodSituation situation, ClassSituation classSituation)
     {
-        _className = className;
+        _fullyQualifiedName = fullyQualifiedName;
         _methodName = methodName;
         _situation = situation;
         _classSituation = classSituation;
-        _classTypeParameters = classTypeParameters;
     }
 
     // --- Standard additions ---
@@ -74,13 +72,6 @@ public class MethodInterceptorBuilder
         bool isStaticClass = _classSituation.HasFlag(ClassSituation.Static);
         bool isStruct = _classSituation.HasFlag(ClassSituation.IsStruct) || _classSituation.HasFlag(ClassSituation.IsRefStruct);
 
-        // Form the full class target (e.g., global::MyClass<T>)
-        string fullClassTarget = $"global::{_className}";
-        if (!string.IsNullOrWhiteSpace(_classTypeParameters))
-        {
-            fullClassTarget += _classTypeParameters;
-        }
-
         // 1. Append InterceptsLocation (Note: fixed numbering)
         foreach (var loc in _locations)
         {
@@ -114,7 +105,7 @@ public class MethodInterceptorBuilder
         if (!isMethodStatic)
         {
             string thisModifier = isStruct ? "ref " : "";
-            methodParams.Add($"{thisModifier}{fullClassTarget} @this");
+            methodParams.Add($"{thisModifier}{_fullyQualifiedName} @this");
         }
 
         foreach (var p in _params)
@@ -152,7 +143,6 @@ public class MethodInterceptorBuilder
         }
 
         // 8. Save the context
-        // FIX: Dynamically adjust the context call based on static/instance situations
         if (isStaticClass)
         {
             sb.AppendLine("        var context = GetClassContext_SnapTrace();");
@@ -174,8 +164,7 @@ public class MethodInterceptorBuilder
         sb.AppendLine($"        CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, global::SnapTrace.SnapStatus.Call);");
 
         // 10. EXECUTE ORIGINAL AND CAPTURE RETURN
-        // FIX: Use fullClassTarget to support statically calling generic classes
-        var target = isMethodStatic ? fullClassTarget : "@this";
+        var target = isMethodStatic ? _fullyQualifiedName : "@this";
         string callArgs = string.Join(", ", _params.Select(p => p.Name));
 
         if (_return.IsVoid)

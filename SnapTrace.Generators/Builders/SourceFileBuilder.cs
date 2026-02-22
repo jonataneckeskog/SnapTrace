@@ -8,13 +8,17 @@ namespace SnapTrace.Generators.Builders;
 
 public class SourceFileBuilder
 {
-    private readonly List<ClassInterceptorBuilder> _classes = new();
+    private readonly Dictionary<string, NamespaceBuilder> _namespaces = new();
 
-    public SourceFileBuilder WithClass(string name, ClassSituation situation, Action<ClassInterceptorBuilder> config)
+    public SourceFileBuilder WithNamespace(string namespaceName, Action<NamespaceBuilder> config)
     {
-        var mb = new ClassInterceptorBuilder(name, situation);
-        config(mb);
-        _classes.Add(mb);
+        if (!_namespaces.TryGetValue(namespaceName, out var nsBuilder))
+        {
+            nsBuilder = new NamespaceBuilder(namespaceName);
+            _namespaces[namespaceName] = nsBuilder;
+        }
+        config(nsBuilder);
+
         return this;
     }
 
@@ -25,10 +29,10 @@ public class SourceFileBuilder
         sb.AppendLine("using global::SnapTrace;");
         sb.AppendLine();
 
-        foreach (var (__class, i) in _classes.Select((value, index) => (value, index)))
+        foreach (var (__namespace, i) in _namespaces.Select((value, index) => (value, index)))
         {
-            __class.InternalBuild(sb);
-            if (i < _classes.Count - 1) sb.AppendLine();
+            __namespace.Value.InternalBuild(sb);
+            if (i < _namespaces.Count - 1) sb.AppendLine();
         }
 
         return sb.ToString();

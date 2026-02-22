@@ -8,6 +8,7 @@ namespace SnapTrace.Generators.Builders;
 
 public class ClassInterceptorBuilder
 {
+    private readonly string _fullyQualifiedName;
     private readonly string _className;
     private readonly ClassSituation _situation;
     private string? _typeParameters;
@@ -16,8 +17,9 @@ public class ClassInterceptorBuilder
     private readonly HashSet<(string Name, string Type)> _contextMembers = new();
     private readonly List<MethodInterceptorBuilder> _methods = new();
 
-    public ClassInterceptorBuilder(string className, ClassSituation situation)
+    public ClassInterceptorBuilder(string fullyQualifiedName, string className, ClassSituation situation)
     {
+        _fullyQualifiedName = fullyQualifiedName;
         _className = className;
         _situation = situation;
     }
@@ -36,7 +38,20 @@ public class ClassInterceptorBuilder
 
     public ClassInterceptorBuilder WithMethod(string name, MethodSituation situation, Action<MethodInterceptorBuilder> config)
     {
-        var mb = new MethodInterceptorBuilder(_className, name, situation, _situation, _typeParameters);
+        // 1. Ensure we have Namespace.ClassName
+        string baseTypeName = $"{_fullyQualifiedName}.{_className}";
+
+        // 2. Add generics only if they exist, and handle the brackets cleanly
+        string typeWithGenerics = !string.IsNullOrWhiteSpace(_typeParameters)
+            ? $"{baseTypeName}<{_typeParameters}>"
+            : baseTypeName;
+
+        // 3. Ensure "global::" is only at the very start if not already present
+        var fullName = typeWithGenerics.StartsWith("global::")
+            ? typeWithGenerics
+            : $"global::{typeWithGenerics}";
+
+        var mb = new MethodInterceptorBuilder(fullName, name, situation, _situation);
 
         config(mb);
         _methods.Add(mb);
@@ -57,10 +72,10 @@ public class ClassInterceptorBuilder
         bool isGeneric = _situation.HasFlag(ClassSituation.IsGeneric);
 
         // 2. Build the target type, appending generics if present
-        string targetType = $"global::{_className}";
+        string targetType = $"{_fullyQualifiedName}.{_className}"; // e.g., "global::MyNamespace.MyClass"
         if (isGeneric && !string.IsNullOrWhiteSpace(_typeParameters))
         {
-            targetType += _typeParameters;
+            targetType += _typeParameters; // Result: "global::MyNamespace.MyClass<T>"
         }
 
         // 3. Class declaration with generics and constraints
