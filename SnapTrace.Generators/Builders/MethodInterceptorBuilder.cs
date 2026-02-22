@@ -163,7 +163,7 @@ public class MethodInterceptorBuilder
             string refModifier = isStruct ? "ref " : "";
             writer.WriteLine($"var context = GetClassContext_SnapTrace({refModifier}@this);");
         }
-        writer.WriteLine();
+        writer.InnerWriter.WriteLine();
 
         // 10. Record the Entry
         writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, global::SnapTrace.SnapStatus.Call);");
@@ -181,7 +181,7 @@ public class MethodInterceptorBuilder
         {
             writer.WriteLine($"var result = {target}.{_methodName}({callArgs});");
             writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, global::SnapTrace.SnapStatus.Return);");
-            writer.WriteLine();
+            writer.InnerWriter.WriteLine();
             writer.WriteLine("return result;");
         }
 

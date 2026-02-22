@@ -79,7 +79,7 @@ public class ClassInterceptorBuilder
         // 4. Static Record Accessor
         writer.WriteLine("[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = \"Record\")]");
         writer.WriteLine("extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);");
-        writer.WriteLine();
+        writer.InnerWriter.WriteLine();
 
         // Parameter logic
         string thisParam = isStatic ? "" : (isStruct ? $"ref {targetType} @this" : $"{targetType} @this");
@@ -91,7 +91,7 @@ public class ClassInterceptorBuilder
             string accessorKind = isStatic ? "StaticField" : "Field";
             writer.WriteLine($"[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.{accessorKind}, Name = \"{member.Name}\")]");
             writer.WriteLine($"extern static ref {member.Type} Get_{member.Name}_SnapTrace({thisParam});");
-            writer.WriteLine();
+            writer.InnerWriter.WriteLine();
         }
 
         // 6. The Context Method
@@ -116,7 +116,7 @@ public class ClassInterceptorBuilder
         // 7. Pass the writer along to method builders
         foreach (var __method in _methods)
         {
-            writer.WriteLine();
+            writer.InnerWriter.WriteLine();
             __method.InternalBuild(writer, targetType);
         }
 
