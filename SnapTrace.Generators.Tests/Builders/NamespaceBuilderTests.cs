@@ -28,7 +28,7 @@ public class NamespaceBuilderTests
         var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class NamespaceBuilderTests
         var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 
     [Fact]
@@ -57,6 +57,6 @@ public class NamespaceBuilderTests
         var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 }

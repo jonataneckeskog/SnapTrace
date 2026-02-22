@@ -1,5 +1,4 @@
 using SnapTrace.Generators.Builders;
-using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Tests.Builders;
 
@@ -16,7 +15,7 @@ public class SourceFileBuilderTests
         var actual = builder.Build();
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 
     [Fact]
@@ -31,6 +30,6 @@ public class SourceFileBuilderTests
         var actual = builder.Build();
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 }

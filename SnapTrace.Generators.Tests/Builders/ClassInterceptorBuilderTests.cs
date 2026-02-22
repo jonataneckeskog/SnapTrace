@@ -28,7 +28,7 @@ public class ClassInterceptorBuilderTests
         var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class ClassInterceptorBuilderTests
         var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class ClassInterceptorBuilderTests
         var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public class ClassInterceptorBuilderTests
         var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class ClassInterceptorBuilderTests
         var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(actual);
+        return Verify(actual, "cs");
     }
 
     [Theory]
@@ -103,6 +103,6 @@ public class ClassInterceptorBuilderTests
         var actual = GetGeneratedOutput(builder.InternalBuild);
 
         // Assert
-        return Verify(actual).UseParameters(situation);
+        return Verify(actual, "cs").UseParameters(situation);
     }
 }

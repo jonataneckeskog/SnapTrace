@@ -26,4 +26,10 @@
     <ProjectReference Include="..\SnapTrace.Generators\SnapTrace.Generators.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Builders/Snapshots/**/*.cs" />
+    <Compile Remove="SnapTraceGenerator/Snapshots/**/*.cs" />
+    <Compile Remove="SnapTraceGenerator/Resources/**/*.cs" />
+  </ItemGroup>
+
 </Project>

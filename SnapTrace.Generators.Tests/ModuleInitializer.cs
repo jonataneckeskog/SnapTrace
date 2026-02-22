@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace SnapTrace.Tests;
+namespace SnapTrace.Generators.Tests;
 
 public static class ModuleInitializer
 {
