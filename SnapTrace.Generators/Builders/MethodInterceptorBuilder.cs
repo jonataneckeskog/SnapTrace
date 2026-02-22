@@ -113,9 +113,8 @@ public class MethodInterceptorBuilder
         var methodParams = new List<string>();
         if (!isMethodStatic)
         {
-            // FIX: Inject 'this' for instance methods, handling structs and generics
             string thisModifier = isStruct ? "ref " : "";
-            methodParams.Add($"this {thisModifier}{fullClassTarget} @this");
+            methodParams.Add($"{thisModifier}{fullClassTarget} @this");
         }
 
         foreach (var p in _params)
