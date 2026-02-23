@@ -30,7 +30,10 @@ public class SnapTraceGeneratorTests
         // Assert: Verify the generated code
         Assert.NotEmpty(result.GeneratedTrees);
 
-        var generatedCode = result.GeneratedTrees[0].GetText().ToString();
+        var generatedTree = result.GeneratedTrees.FirstOrDefault(t => t.FilePath.EndsWith("SnapTrace.Interceptors.g.cs"));
+        Assert.NotNull(generatedTree);
+
+        var generatedCode = generatedTree.GetText().ToString();
         await Verify(generatedCode, "cs");
     }
 
@@ -41,7 +44,11 @@ public class SnapTraceGeneratorTests
 
         // Act
         var result = GeneratorTestHelper.RunGenerator(source);
-        var generatedCode = result.GeneratedTrees[0].GetText().ToString();
+
+        var generatedTree = result.GeneratedTrees.FirstOrDefault(t => t.FilePath.EndsWith("SnapTrace.Interceptors.g.cs"));
+        Assert.NotNull(generatedTree);
+
+        var generatedCode = generatedTree.GetText().ToString();
 
         // Assert
         await Verify(generatedCode, "cs");
