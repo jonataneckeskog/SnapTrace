@@ -14,10 +14,15 @@ namespace SnapTrace.Generators;
 [Generator]
 public class SnapTraceGenerator : IIncrementalGenerator
 {
-    static SnapTraceSymbols symbols;
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        context.RegisterPostInitializationOutput(ctx =>
+        {
+            ctx.AddSource(
+                "SnapTrace.Attributes.g.cs",
+                SourceText.From(AttributeDefinitions.Definitions, Encoding.UTF8));
+        });
+
         // 1. Find all invocations of methods that have the SnapTrace attribute
         var provider = context.SyntaxProvider.CreateSyntaxProvider(
             predicate: static (node, _) => node is InvocationExpressionSyntax,
@@ -36,7 +41,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
         var semanticModel = ctx.SemanticModel;
 
         // Resolve Symbols for the current compilation
-        symbols = SnapTraceSymbols.Load(semanticModel.Compilation);
+        var symbols = SnapTraceSymbols.Load(semanticModel.Compilation);
         if (!symbols.IsValid) return null;
 
         if (semanticModel.GetSymbolInfo(invocation).Symbol is not IMethodSymbol methodSymbol)
@@ -62,8 +67,8 @@ public class SnapTraceGenerator : IIncrementalGenerator
         int column = lineSpan.StartLinePosition.Character + 1;
 
         // Build Metadata
-        var classData = ExtractClassData(methodSymbol.ContainingType);
-        var methodData = ExtractMethodData(methodSymbol);
+        var classData = ExtractClassData(methodSymbol.ContainingType, symbols);
+        var methodData = ExtractMethodData(methodSymbol, symbols);
 
         return new InterceptedCall(filePath, line, column, methodData, classData);
     }
@@ -131,7 +136,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
 
     // --- Helper Methods ---
 
-    private static ClassData ExtractClassData(INamedTypeSymbol typeSymbol)
+    private static ClassData ExtractClassData(INamedTypeSymbol typeSymbol, SnapTraceSymbols symbols)
     {
         var situation = ClassSituation.None;
         if (typeSymbol.IsStatic) situation |= ClassSituation.Static;
@@ -164,7 +169,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
         );
     }
 
-    private static MethodData ExtractMethodData(IMethodSymbol methodSymbol)
+    private static MethodData ExtractMethodData(IMethodSymbol methodSymbol, SnapTraceSymbols symbols)
     {
         var situation = MethodSituation.None;
         if (methodSymbol.IsStatic) situation |= MethodSituation.Static;
