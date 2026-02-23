@@ -6,7 +6,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using SnapTrace.Generators.Builders;
-using SnapTrace.Generators.Constants;
 using SnapTrace.Generators.Definitions;
 using SnapTrace.Generators.Models;
 
@@ -15,6 +14,8 @@ namespace SnapTrace.Generators;
 [Generator]
 public class SnapTraceGenerator : IIncrementalGenerator
 {
+    static SnapTraceSymbols symbols;
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // 1. Find all invocations of methods that have the SnapTrace attribute
@@ -32,12 +33,17 @@ public class SnapTraceGenerator : IIncrementalGenerator
     private static InterceptedCall? GetInterceptedCall(GeneratorSyntaxContext ctx)
     {
         var invocation = (InvocationExpressionSyntax)ctx.Node;
+        var semanticModel = ctx.SemanticModel;
 
-        if (ctx.SemanticModel.GetSymbolInfo(invocation).Symbol is not IMethodSymbol methodSymbol)
+        // Resolve Symbols for the current compilation
+        symbols = SnapTraceSymbols.Load(semanticModel.Compilation);
+        if (!symbols.IsValid) return null;
+
+        if (semanticModel.GetSymbolInfo(invocation).Symbol is not IMethodSymbol methodSymbol)
             return null;
 
-        bool hasAttribute = HasAttribute(methodSymbol, SnapTraceConstants.SnapTraceAttributeName) ||
-                            HasAttribute(methodSymbol.ContainingType, SnapTraceConstants.SnapTraceAttributeName);
+        bool hasAttribute = HasAttribute(methodSymbol, symbols.TraceAttribute) ||
+                            HasAttribute(methodSymbol.ContainingType, symbols.TraceAttribute);
 
         if (!hasAttribute)
             return null;
@@ -135,7 +141,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
         var ctxMembers = new List<ContextMemberData>();
         foreach (var member in typeSymbol.GetMembers())
         {
-            if (member is IFieldSymbol or IPropertySymbol && HasAttribute(member, SnapTraceConstants.SnapTraceContextAttributeName))
+            if (member is IFieldSymbol or IPropertySymbol && HasAttribute(member, symbols.ContextAttribute))
             {
                 string memberType = member is IFieldSymbol fs ? fs.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                                                               : ((IPropertySymbol)member).Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -178,7 +184,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
             },
             IsParams: p.IsParams,
             DeepCopy: false, // Ignored as requested
-            Redacted: HasAttribute(p, SnapTraceConstants.SnapTraceIgnoreAttributeName)
+            Redacted: HasAttribute(p, symbols.IgnoreAttribute)
         )).ToList();
 
         string typeParams = methodSymbol.TypeParameters.Any()
@@ -196,9 +202,11 @@ public class SnapTraceGenerator : IIncrementalGenerator
         );
     }
 
-    private static bool HasAttribute(ISymbol symbol, string fullyQualifiedAttributeName)
+    private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol? attributeSymbol)
     {
+        if (attributeSymbol is null) return false;
+
         return symbol.GetAttributes().Any(a =>
-            a.AttributeClass?.ToDisplayString() == fullyQualifiedAttributeName);
+            SymbolEqualityComparer.Default.Equals(a.AttributeClass, attributeSymbol));
     }
 }
