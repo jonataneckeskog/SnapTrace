@@ -202,7 +202,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
             IsVoid: methodSymbol.ReturnsVoid,
             Situation: situation,
             TypeParameters: typeParams,
-            WhereConstraints: "", // Add logic if specific constraint rendering is needed
+            WhereConstraints: "", // Add logic if specific constraint
             Parameters: parameters
         );
     }

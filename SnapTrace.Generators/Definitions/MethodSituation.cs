@@ -2,6 +2,9 @@ using System;
 
 namespace SnapTrace.Generators.Definitions;
 
+/// <summary>
+/// Represents a situation for a method in c#.
+/// </summary>
 [Flags]
 public enum MethodSituation
 {

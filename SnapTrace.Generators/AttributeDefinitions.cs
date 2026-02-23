@@ -2,6 +2,10 @@ namespace SnapTrace.Generators;
 
 internal static class AttributeDefinitions
 {
+    /// <summary>
+    /// The attributes served by SnapTrace. All marked with "SNAPTRACE",
+    /// meaning that the compilator can chose to ignore them if prompted.
+    /// </summary>
     internal const string Definitions = @"
 using System;
 using System.Diagnostics;

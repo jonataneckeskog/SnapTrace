@@ -2,6 +2,10 @@ using System;
 
 namespace SnapTrace.Generators.Definitions;
 
+/// <summary>
+/// Represents a situation for a class. Any c# class can have these attributes, often
+/// in combination.
+/// </summary>
 [Flags]
 public enum ClassSituation
 {
