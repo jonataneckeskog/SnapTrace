@@ -1,5 +1,4 @@
 using System.Reflection;
-using SnapTrace.Runtime.Configuration;
 using SnapTrace.Runtime.Internal;
 using SnapTrace.Runtime.Models;
 
