@@ -39,7 +39,7 @@ public class BankService
     [SnapTrace] 
     private void SyncToDatabase() { }
 
-    // 8. Capture the full parameters and return value states, in this case only AccountId
+    // 8. Capture the full parameters and return value states without mutation, in this case only AccountId
     //    since AccountService is ignored.
     [SnapTraceDeep, return: SnapTraceIgnore]
     public AccountService getAccountService(AccountId accountId)

@@ -1,0 +1,4 @@
+﻿using global::SnapTrace;
+
+namespace MyNamespace
+{}
