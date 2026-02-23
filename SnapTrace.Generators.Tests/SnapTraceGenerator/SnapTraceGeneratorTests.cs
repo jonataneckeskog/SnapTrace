@@ -1,42 +1,28 @@
 namespace SnapTrace.Generators.Tests.SnapTraceGenerator;
 
+using System.Runtime.CompilerServices;
+
 public class SnapTraceGeneratorTests
 {
+    private string LoadTestData(string fileName, [CallerFilePath] string sourceFilePath = "")
+    {
+        var testFileDirectory = Path.GetDirectoryName(sourceFilePath);
+
+        var path = Path.Combine(testFileDirectory ?? @"", "Resources", fileName);
+
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException($"Still can't find it! Looked at: {path}");
+        }
+
+        return File.ReadAllText(path);
+    }
+
     [Fact]
     public async Task Generates_Interceptor_For_SnapTraced_Method()
     {
         // Arrange: Your test class as a string, including the required attributes.
-        var source = @"
-using System;
-using SnapTrace;
-
-namespace SnapTrace
-{
-    public class SnapTraceAttribute : Attribute { }
-    public class SnapTraceContextAttribute : Attribute { }
-    public class SnapTraceIgnoreAttribute : Attribute { }
-}
-
-namespace TestApp
-{
-    public class MyService
-    {
-        [SnapTrace]
-        public void DoWork(string input)
-        {
-            Console.WriteLine(input);
-        }
-    }
-
-    public class Program
-    {
-        public static void Main()
-        {
-            var service = new MyService();
-            service.DoWork(""Hello""); // This invocation should trigger the generator
-        }
-    }
-}";
+        var source = LoadTestData("TestFile1.cs");
 
         // Act: Run the generator
         var result = GeneratorTestHelper.RunGenerator(source);
@@ -51,29 +37,7 @@ namespace TestApp
     [Fact]
     public async Task Generates_Context_Accessors_For_Traced_Members()
     {
-        var source = @"
-using SnapTrace;
-
-namespace SnapTrace {
-    public class SnapTraceAttribute : System.Attribute { }
-    public class SnapTraceContextAttribute : System.Attribute { }
-}
-
-namespace TestApp {
-    public class UserService {
-        [SnapTraceContext]
-        private string _userId = ""12345""; // This should generate an UnsafeAccessor
-
-        [SnapTrace]
-        public void UpdateUser(string name) { }
-    }
-
-    public class Program {
-        public static void Main() {
-            new UserService().UpdateUser(""Alice"");
-        }
-    }
-}";
+        var source = LoadTestData("TestFile2.cs");
 
         // Act
         var result = GeneratorTestHelper.RunGenerator(source);

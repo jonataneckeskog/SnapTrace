@@ -16,7 +16,7 @@ namespace TestApp
             return new { _userId = (object?)Get__userId_SnapTrace(@this) };
         }
 
-        [global::System.Runtime.CompilerServices.InterceptsLocation(@"C:\\Tests\\TestProject.cs", 20, 31)]
+        [global::System.Runtime.CompilerServices.InterceptsLocation(@"C:\\Tests\\TestProject.cs", 18, 31)]
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void UpdateUser_SnapTrace_void_string(global::TestApp.UserService @this, string name)
         {

@@ -13,7 +13,7 @@ namespace TestApp
             return null;
         }
 
-        [global::System.Runtime.CompilerServices.InterceptsLocation(@"C:\\Tests\\TestProject.cs", 28, 21)]
+        [global::System.Runtime.CompilerServices.InterceptsLocation(@"C:\\Tests\\TestProject.cs", 19, 21)]
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void DoWork_SnapTrace_void_string(global::TestApp.MyService @this, string input)
         {
