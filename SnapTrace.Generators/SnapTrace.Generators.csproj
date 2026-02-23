@@ -17,8 +17,4 @@
     <InternalsVisibleTo Include="SnapTrace.Generators.Tests" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\SnapTrace.Core\SnapTrace.Core.csproj" />
-  </ItemGroup>
-
 </Project>

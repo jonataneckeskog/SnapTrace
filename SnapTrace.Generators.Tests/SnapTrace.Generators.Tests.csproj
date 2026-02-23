@@ -23,7 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SnapTrace.Generators\SnapTrace.Generators.csproj" />
+    <ProjectReference Include="..\SnapTrace.Generators\SnapTrace.Generators.csproj" 
+                    OutputItemType="Analyzer" 
+                    ReferenceOutputAssembly="true" />
   </ItemGroup>
 
   <ItemGroup>
