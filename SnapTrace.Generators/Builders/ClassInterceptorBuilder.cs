@@ -6,6 +6,10 @@ using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Builders;
 
+/// <summary>
+/// Builder for building the syntax for classes and records for SnapTrace. Handles all types of classes and records,
+/// including: static, unsafe, ref struct mm.
+/// </summary>
 public class ClassInterceptorBuilder
 {
     private readonly string _fullyQualifiedName;

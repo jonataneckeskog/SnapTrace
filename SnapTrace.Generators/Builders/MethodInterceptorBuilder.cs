@@ -6,6 +6,11 @@ using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Builders;
 
+/// <summary>
+/// Builder for building the syntax for methods in SnapTrace. Handles methods of all types, with all
+/// return values. Every parameter and return value is turned into a simple reference for passing
+/// along.
+/// </summary>
 public class MethodInterceptorBuilder
 {
     // Builder data

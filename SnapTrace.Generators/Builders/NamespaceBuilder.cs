@@ -5,6 +5,10 @@ using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Builders;
 
+/// <summary>
+/// Handles building the syntax for namespaces in SnapTrace. NameSpaceBuilder uses the old syntax style
+/// with brackets.
+/// </summary>
 public class NamespaceBuilder
 {
     private readonly List<ClassInterceptorBuilder> _classes = new();

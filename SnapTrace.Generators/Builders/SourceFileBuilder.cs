@@ -7,6 +7,10 @@ using System.Text;
 
 namespace SnapTrace.Generators.Builders;
 
+/// <summary>
+/// Builders the individual source files for SnapTrace. SourceFileBuilder ensured the global
+/// using 'SnapTrace' and then adds any amount of namespaces as needed.
+/// </summary>
 public class SourceFileBuilder
 {
     private readonly Dictionary<string, NamespaceBuilder> _namespaces = new();
@@ -23,6 +27,10 @@ public class SourceFileBuilder
         return this;
     }
 
+    /// <summary>
+    /// Builds the full file, using a chained method to the underlying namespace, class and method builders.
+    /// </summary>
+    /// <returns></returns>
     public string Build()
     {
         StringBuilder sb = new();
