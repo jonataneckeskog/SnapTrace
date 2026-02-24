@@ -1,0 +1,12 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CompilerVisibleProperty Include="SnapTraceDisable" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(SnapTraceDisable)' != 'true'">
+    <DefineConstants>$(DefineConstants);SNAPTRACE</DefineConstants>
+    <Features>$(Features);InterceptorsPreview</Features>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);SnapTrace.Generated</InterceptorsNamespaces>
+    <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);SnapTrace.Generators</InterceptorsPreviewNamespaces>
+  </PropertyGroup>
+</Project>

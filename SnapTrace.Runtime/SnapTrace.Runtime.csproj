@@ -34,11 +34,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="SnapTrace.Runtime.Tests" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
+    
+    <None Include="SnapTrace.targets" Pack="true" PackagePath="build" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="SnapTrace.Runtime.Tests" />
   </ItemGroup>
 
   <ItemGroup>

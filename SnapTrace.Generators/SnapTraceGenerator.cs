@@ -9,6 +9,7 @@ using SnapTrace.Generators.Builders;
 using SnapTrace.Generators.Definitions;
 using SnapTrace.Generators.Models;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 
 namespace SnapTrace.Generators;
 
@@ -26,13 +27,35 @@ public class SnapTraceGenerator : IIncrementalGenerator
 
         var provider = context.SyntaxProvider.CreateSyntaxProvider(
             predicate: static (node, _) => node is InvocationExpressionSyntax,
-            // Pass 'ct' into GetInterceptedCall
             transform: static (ctx, ct) => GetInterceptedCall(ctx, ct))
             .Where(static call => call is not null);
 
+        var disableSignal = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+        {
+            options.GlobalOptions.TryGetValue("build_property.SnapTraceDisable", out var isDisabledStr);
+            return string.Equals(isDisabledStr, "true", StringComparison.OrdinalIgnoreCase);
+        });
+
+        var combinedProvider = context.CompilationProvider
+            .Combine(provider.Collect())
+            .Combine(disableSignal);
+
         context.RegisterSourceOutput(
-            context.CompilationProvider.Combine(provider.Collect()),
-            static (spc, source) => ExecuteGeneration(spc, source.Right!));
+            combinedProvider,
+            static (spc, source) =>
+            {
+                var isDisabled = source.Right;
+
+                if (isDisabled)
+                {
+                    return;
+                }
+
+                var compilationAndCalls = source.Left;
+                var calls = compilationAndCalls.Right;
+
+                ExecuteGeneration(spc, calls!);
+            });
     }
 
     private static InterceptedCall? GetInterceptedCall(GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
