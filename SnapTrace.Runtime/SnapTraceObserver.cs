@@ -8,7 +8,7 @@ namespace SnapTrace;
 /// The main entrypoint of SnapTrace. Handles the trace data and provides
 /// methods to update it.
 /// </summary>
-public static class SnapTraceObserver
+public partial class SnapTraceObserver
 {
     private static RingBuffer<SnapEntry>? _buffer;
     private static SnapOptions? _options;
