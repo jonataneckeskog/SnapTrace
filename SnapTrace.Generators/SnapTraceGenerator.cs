@@ -28,7 +28,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
         context.RegisterPostInitializationOutput(ctx =>
         {
             ctx.AddSource(
-                "SnapTrace.Interceptors.g.cs",
+                "SnapTrace.SnapCloner.g.cs",
                 SourceText.From(GeneratorUtils.SnapCloner, Encoding.UTF8));
         });
 
