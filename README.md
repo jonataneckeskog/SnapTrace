@@ -99,7 +99,7 @@ dotnet build -c Release
 **No-Trace Build (SnapTrace Completely Stripped):**
 
 ```bash
-dotnet build -c Release -p:NoTrace=true
+dotnet build -c Release -p:SnapTraceDisable=true
 
 ```
 
