@@ -63,7 +63,17 @@ public class ClassInterceptorBuilder
         bool isGeneric = !string.IsNullOrWhiteSpace(_typeParameters);
 
         // 2. Build the target type safely
-        string targetType = $"global::{_originalNamespace}.{_className}{_typeParameters}";
+        string targetType;
+        if (string.IsNullOrWhiteSpace(_originalNamespace))
+        {
+            // Class is in the root namespace
+            targetType = $"global::{_className}{_typeParameters}";
+        }
+        else
+        {
+            // Class is in a specific namespace
+            targetType = $"global::{_originalNamespace}.{_className}{_typeParameters}";
+        }
 
         // 3. Class declaration (This stays local to your generated namespace)
         string classDecl = $"internal static class {_className}_SnapTrace{_typeParameters}";

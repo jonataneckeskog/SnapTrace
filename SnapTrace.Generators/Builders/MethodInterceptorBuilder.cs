@@ -114,7 +114,7 @@ public class MethodInterceptorBuilder
         if (!isMethodStatic)
         {
             string thisModifier = isStruct ? "ref " : "";
-            methodParams.Add($"{thisModifier}{targetType} @this");
+            methodParams.Add($"this {thisModifier}{targetType} @this");
         }
 
         foreach (var p in _params)

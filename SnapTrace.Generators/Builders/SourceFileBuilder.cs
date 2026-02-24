@@ -39,6 +39,7 @@ public class SourceFileBuilder
         using (var writer = new IndentedTextWriter(stringWriter, "    "))
         {
             // 1. Global Usings
+            writer.WriteLine("#nullable enable");
             writer.WriteLine("using global::SnapTrace;");
 
             // 2. Iterate through namespaces
