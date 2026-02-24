@@ -1,9 +1,4 @@
-namespace SnapTrace.Generators.Constants;
-
-internal static class GeneratorUtils
-{
-    public const string SnapCloner = """
-#nullable enable
+﻿#nullable enable
 namespace SnapTrace.Generated
 {
     internal static class SnapCloner
@@ -50,6 +45,4 @@ namespace SnapTrace.Generated
             return obj;
         }
     }
-}
-""";
 }

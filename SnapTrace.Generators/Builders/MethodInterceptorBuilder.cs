@@ -154,8 +154,8 @@ public class MethodInterceptorBuilder
         writer.WriteLine("{");
         writer.Indent++;
 
-        // 8. Save method parameters to an object array
-        writer.Write("object? data = ");
+        // 8. Save method parameters to an object
+        writer.Write("object[] data = ");
         if (_params.Count == 0)
         {
             writer.WriteLine("null;");
@@ -169,9 +169,9 @@ public class MethodInterceptorBuilder
                     return $"/* {p.Name} */ \"[REDACTED]\"";
 
                 if (p.DeepCopy)
-                    return $"/* {p.Name} */ {p.Name} is null ? default : global::System.Text.Json.JsonSerializer.Deserialize<{p.Type}>(global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({p.Name}))";
+                    return $"/* {p.Name} */ global::SnapTrace.Generated.SnapCloner.Clone((object){p.Name})";
 
-                return $"/* {p.Name} */ {p.Name}";
+                return $"/* {p.Name} */ ((object){p.Name})?.ToString() ?? \"null\"";
             });
 
             writer.Write(string.Join(", ", arrayParts));
@@ -199,12 +199,51 @@ public class MethodInterceptorBuilder
         }
         else
         {
-            writer.WriteLine($"var result = {target}.{_methodName}({callArgs});");
+            string resultRefModifier = "";
+            string refCallModifier = "";
+
+            if (_situation.HasFlag(MethodSituation.ReturnsRef))
+            {
+                resultRefModifier = "ref var ";
+                refCallModifier = "ref ";
+            }
+            else if (_situation.HasFlag(MethodSituation.ReturnsRefReadonly))
+            {
+                resultRefModifier = "ref readonly var ";
+                refCallModifier = "ref ";
+            }
+            else
+            {
+                resultRefModifier = "var ";
+            }
+
+            // Use the refCallModifier when calling the target method
+            writer.WriteLine($"{resultRefModifier}result = {refCallModifier}{target}.{_methodName}({callArgs});");
             writer.InnerWriter.WriteLine();
+
+            string recordedResult;
+            if (_return.Redacted)
+            {
+                recordedResult = "\"[REDACTED]\"";
+            }
+            else if (_return.DeepCopy)
+            {
+                recordedResult = $"global::SnapTrace.Generated.SnapCloner.Clone((object)result)";
+            }
+            else
+            {
+                recordedResult = "((object)result)?.ToString() ?? \"null\"";
+            }
+
             writer.WriteLine($"var contextAfter = {saveContext};");
-            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", result, contextAfter, {BuilderConstants.SnapStatusPath}.Return);");
+            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", {recordedResult}, contextAfter, {BuilderConstants.SnapStatusPath}.Return);");
             writer.InnerWriter.WriteLine();
-            writer.WriteLine("return result;");
+
+            string returnModifier = (_situation.HasFlag(MethodSituation.ReturnsRef) || _situation.HasFlag(MethodSituation.ReturnsRefReadonly))
+                ? "ref "
+                : "";
+
+            writer.WriteLine($"return {returnModifier}result;");
         }
 
         // 12. Close the method
@@ -219,9 +258,21 @@ public class MethodInterceptorBuilder
             .Replace("[]", "Array")
             .Replace("<", "_")
             .Replace(">", "_")
+            .Replace("(", "Tup_")
+            .Replace(")", "_")
             .Replace(",", "_")
             .Replace(" ", "")
             .Replace(".", "_")
             .TrimEnd('_');
+    }
+
+    private static bool IsValueType(string type)
+    {
+        if (type.StartsWith("(") || type == "int" || type == "long" || type == "bool" ||
+            type == "double" || type == "float" || type == "decimal" || type == "char" ||
+            type.Contains("ValueTuple"))
+            return true;
+
+        return false;
     }
 }

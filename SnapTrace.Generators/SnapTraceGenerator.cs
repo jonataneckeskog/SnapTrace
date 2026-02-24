@@ -222,20 +222,35 @@ public class SnapTraceGenerator : IIncrementalGenerator
                              !methodSymbol.ReturnType.IsValueType &&
                              methodSymbol.ReturnType.SpecialType != SpecialType.System_String;
 
-        var parameters = methodSymbol.Parameters.Select(p => new ParameterData(
-            Name: p.Name,
-            Type: p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            Modifier: p.RefKind switch
+        var parameters = new List<ParameterData>();
+        foreach (var param in methodSymbol.Parameters)
+        {
+            // Check for SnapTraceDeep attribute
+            bool paramDeepCopy = param.GetAttributes().Any(attr => 
+                SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.DeepAttribute));
+            
+            // Check for SnapTraceIgnore attribute
+            bool paramRedacted = param.GetAttributes().Any(attr => 
+                SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.IgnoreAttribute));
+
+            string paramType = param.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            string modifier = param.RefKind switch
             {
-                RefKind.Ref => "ref",
-                RefKind.Out => "out",
-                RefKind.In => "in",
+                RefKind.Out => "out ",
+                RefKind.Ref => "ref ",
+                RefKind.RefReadOnly => "ref readonly ",
                 _ => ""
-            },
-            IsParams: p.IsParams,
-            DeepCopy: HasAttribute(p, symbols.DeepAttribute),
-            Redacted: HasAttribute(p, symbols.IgnoreAttribute)
-        )).ToList();
+            };
+
+            parameters.Add(new ParameterData(
+                param.Name,
+                paramType,
+                modifier,
+                param.IsParams,
+                paramDeepCopy,
+                paramRedacted
+            ));
+        }
 
         string typeParams = methodSymbol.TypeParameters.Any()
             ? $"<{string.Join(", ", methodSymbol.TypeParameters.Select(t => t.Name))}>"
