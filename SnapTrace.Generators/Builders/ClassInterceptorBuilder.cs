@@ -12,7 +12,7 @@ namespace SnapTrace.Generators.Builders;
 /// </summary>
 public class ClassInterceptorBuilder
 {
-    private readonly string _fullyQualifiedName;
+    private readonly string _originalNamespace;
     private readonly string _className;
     private readonly ClassSituation _situation;
     private string _typeParameters = "";
@@ -21,9 +21,9 @@ public class ClassInterceptorBuilder
     private readonly HashSet<(string Name, string Type)> _contextMembers = new();
     private readonly List<MethodInterceptorBuilder> _methods = new();
 
-    public ClassInterceptorBuilder(string fullyQualifiedName, string className, ClassSituation situation)
+    public ClassInterceptorBuilder(string originalNamespace, string className, ClassSituation situation)
     {
-        _fullyQualifiedName = fullyQualifiedName;
+        _originalNamespace = originalNamespace;
         _className = className;
         _situation = situation;
     }
@@ -63,9 +63,9 @@ public class ClassInterceptorBuilder
         bool isGeneric = !string.IsNullOrWhiteSpace(_typeParameters);
 
         // 2. Build the target type safely
-        string targetType = $"{_fullyQualifiedName}.{_className}{_typeParameters}";
+        string targetType = $"global::{_originalNamespace}.{_className}{_typeParameters}";
 
-        // 3. Class declaration
+        // 3. Class declaration (This stays local to your generated namespace)
         string classDecl = $"internal static class {_className}_SnapTrace{_typeParameters}";
 
         writer.WriteLine(classDecl);
