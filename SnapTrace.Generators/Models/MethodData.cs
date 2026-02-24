@@ -23,7 +23,9 @@ internal record MethodData(
     MethodSituation Situation,
     string TypeParameters,
     string WhereConstraints,
-    IReadOnlyList<ParameterData> Parameters)
+    IReadOnlyList<ParameterData> Parameters,
+    bool DeepCopyReturn,
+    bool RedactedReturn)
 {
     public virtual bool Equals(MethodData? other)
     {
@@ -33,7 +35,10 @@ internal record MethodData(
                IsVoid == other.IsVoid &&
                Situation == other.Situation &&
                TypeParameters == other.TypeParameters &&
-               Parameters.SequenceEqual(other.Parameters);
+               WhereConstraints == other.WhereConstraints &&
+               Parameters.SequenceEqual(other.Parameters) &&
+               DeepCopyReturn == other.DeepCopyReturn &&
+               RedactedReturn == other.RedactedReturn;
     }
 
     public override int GetHashCode()
@@ -47,6 +52,8 @@ internal record MethodData(
             hash = (hash * 23) + Situation.GetHashCode();
             hash = (hash * 23) + (TypeParameters?.GetHashCode() ?? 0);
             hash = (hash * 23) + (WhereConstraints?.GetHashCode() ?? 0);
+            hash = (hash * 23) + DeepCopyReturn.GetHashCode();
+            hash = (hash * 23) + RedactedReturn.GetHashCode();
 
             if (Parameters != null)
             {

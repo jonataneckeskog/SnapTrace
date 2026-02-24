@@ -9,6 +9,7 @@ using SnapTrace.Generators.Builders;
 using SnapTrace.Generators.Definitions;
 using SnapTrace.Generators.Models;
 using Microsoft.CodeAnalysis.CSharp;
+using SnapTrace.Generators.Constants;
 using System;
 
 namespace SnapTrace.Generators;
@@ -23,6 +24,12 @@ public class SnapTraceGenerator : IIncrementalGenerator
             ctx.AddSource(
                 "SnapTrace.Attributes.g.cs",
                 SourceText.From(AttributeDefinitions.Definitions, Encoding.UTF8));
+        });
+        context.RegisterPostInitializationOutput(ctx =>
+        {
+            ctx.AddSource(
+                "SnapTrace.Interceptors.g.cs",
+                SourceText.From(GeneratorUtils.SnapCloner, Encoding.UTF8));
         });
 
         var provider = context.SyntaxProvider.CreateSyntaxProvider(
@@ -76,21 +83,14 @@ public class SnapTraceGenerator : IIncrementalGenerator
         if (!hasAttribute)
             return null;
 
-        // --- NEW ROSLYN INTERCEPTOR API USAGE ---
-
-        // Disable the experimental Roslyn warning
 #pragma warning disable RSEXPERIMENTAL002
 
-        // 1. Ask the SemanticModel for the exact interceptable location data
         var interceptableLocation = semanticModel.GetInterceptableLocation(invocation, ct);
         if (interceptableLocation is null) return null;
 
-        // 2. Get the pre-formatted attribute string! 
         string interceptorAttributeString = interceptableLocation.GetInterceptsLocationAttributeSyntax();
 
-        // Restore the warning so we don't accidentally ignore it elsewhere
 #pragma warning restore RSEXPERIMENTAL002
-
 
         // ----------------------------------------
 
@@ -98,10 +98,8 @@ public class SnapTraceGenerator : IIncrementalGenerator
         var classData = ExtractClassData(methodSymbol.ContainingType, symbols);
         var methodData = ExtractMethodData(methodSymbol, symbols);
 
-        // You will need to update your InterceptedCall constructor to accept this string.
-        // If you still need filePath, line, and column for logging, you can keep the old calculation and pass them too.
         return new InterceptedCall(
-            interceptorAttributeString, // Pass this to your record!
+            interceptorAttributeString,
             methodData,
             classData
         );
@@ -142,7 +140,11 @@ public class SnapTraceGenerator : IIncrementalGenerator
                             var methodInfo = methodGroup.Key;
                             classBuilder.WithMethod(methodInfo.Name, methodInfo.Situation, methodBuilder =>
                             {
-                                methodBuilder.WithReturn(methodInfo.ReturnType, false, false); // Ignored deep/redact for return here
+                                methodBuilder.WithReturn(
+                                    methodInfo.ReturnType,
+                                    methodInfo.DeepCopyReturn,
+                                    methodInfo.RedactedReturn
+                                );
 
                                 if (!string.IsNullOrEmpty(methodInfo.TypeParameters))
                                 {
@@ -211,6 +213,15 @@ public class SnapTraceGenerator : IIncrementalGenerator
         if (methodSymbol.ReturnsByRef) situation |= MethodSituation.ReturnsRef;
         if (methodSymbol.ReturnsByRefReadonly) situation |= MethodSituation.ReturnsRefReadonly;
 
+        // 1. Check Return Attributes
+        bool returnRedacted = HasAttribute(methodSymbol, symbols.IgnoreAttribute) ||
+                             methodSymbol.GetReturnTypeAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.IgnoreAttribute));
+
+        // 2. Determine if the return value should be DeepCopied
+        bool returnDeepCopy = !methodSymbol.ReturnsVoid &&
+                             !methodSymbol.ReturnType.IsValueType &&
+                             methodSymbol.ReturnType.SpecialType != SpecialType.System_String;
+
         var parameters = methodSymbol.Parameters.Select(p => new ParameterData(
             Name: p.Name,
             Type: p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
@@ -222,7 +233,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
                 _ => ""
             },
             IsParams: p.IsParams,
-            DeepCopy: false, // Ignored as requested
+            DeepCopy: HasAttribute(p, symbols.DeepAttribute),
             Redacted: HasAttribute(p, symbols.IgnoreAttribute)
         )).ToList();
 
@@ -236,8 +247,10 @@ public class SnapTraceGenerator : IIncrementalGenerator
             IsVoid: methodSymbol.ReturnsVoid,
             Situation: situation,
             TypeParameters: typeParams,
-            WhereConstraints: "", // Add logic if specific constraint
-            Parameters: parameters
+            WhereConstraints: "",
+            Parameters: parameters,
+            DeepCopyReturn: returnDeepCopy,
+            RedactedReturn: returnRedacted
         );
     }
 

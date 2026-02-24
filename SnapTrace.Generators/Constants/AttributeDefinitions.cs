@@ -1,4 +1,4 @@
-namespace SnapTrace.Generators;
+namespace SnapTrace.Generators.Constants;
 
 internal static class AttributeDefinitions
 {
