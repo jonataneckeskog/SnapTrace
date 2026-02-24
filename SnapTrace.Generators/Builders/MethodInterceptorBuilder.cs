@@ -73,6 +73,7 @@ public class MethodInterceptorBuilder
         bool isMethodStatic = _situation.HasFlag(MethodSituation.Static);
         bool isStaticClass = _classSituation.HasFlag(ClassSituation.Static);
         bool isStruct = _classSituation.HasFlag(ClassSituation.IsStruct) || _classSituation.HasFlag(ClassSituation.IsRefStruct);
+        string refModifier = isStruct ? "ref " : "";
 
         // 2. Append InterceptsLocation
         foreach (var loc in _locations)
@@ -163,6 +164,7 @@ public class MethodInterceptorBuilder
             writer.Write(string.Join(", ", arrayParts));
             writer.WriteLine(" };");
         }
+        writer.InnerWriter.WriteLine();
 
         // 9. Save the context
         if (isStaticClass)
@@ -175,13 +177,12 @@ public class MethodInterceptorBuilder
         }
         else
         {
-            string refModifier = isStruct ? "ref " : "";
-            writer.WriteLine($"var context = GetClassContext_SnapTrace({refModifier}@this);");
+            writer.WriteLine($"var contextBefore = GetClassContext_SnapTrace({refModifier}@this);");
         }
-        writer.InnerWriter.WriteLine();
 
         // 10. Record the Entry
         writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, {BuilderConstants.SnapStatusPath}.Call);");
+        writer.InnerWriter.WriteLine();
 
         // 11. EXECUTE ORIGINAL AND CAPTURE RETURN
         var target = isMethodStatic ? targetType : "@this";
@@ -190,12 +191,16 @@ public class MethodInterceptorBuilder
         if (_return.IsVoid)
         {
             writer.WriteLine($"{target}.{_methodName}({callArgs});");
-            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", null, context, {BuilderConstants.SnapStatusPath}.Return);");
+            writer.InnerWriter.WriteLine();
+            writer.WriteLine($"var contextAfter = GetClassContext_SnapTrace({refModifier}@this);");
+            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", null, contextAfter, {BuilderConstants.SnapStatusPath}.Return);");
         }
         else
         {
             writer.WriteLine($"var result = {target}.{_methodName}({callArgs});");
-            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, {BuilderConstants.SnapStatusPath}.Return);");
+            writer.InnerWriter.WriteLine();
+            writer.WriteLine($"var contextAfter = GetClassContext_SnapTrace({refModifier}@this);");
+            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", result, contextAfter, {BuilderConstants.SnapStatusPath}.Return);");
             writer.InnerWriter.WriteLine();
             writer.WriteLine("return result;");
         }
