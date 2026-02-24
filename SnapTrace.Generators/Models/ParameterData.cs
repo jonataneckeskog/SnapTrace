@@ -16,4 +16,5 @@ internal record ParameterData(
     string Modifier,
     bool IsParams,
     bool DeepCopy,
-    bool Redacted);
+    bool Redacted,
+    bool IsNonNullable);

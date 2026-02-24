@@ -1,4 +1,4 @@
-namespace SnapTrace.Runtime.Configuration;
+namespace SnapTrace;
 
 /// <summary>
 /// Configuration options for the SnapTrace ring buffer and output handling.

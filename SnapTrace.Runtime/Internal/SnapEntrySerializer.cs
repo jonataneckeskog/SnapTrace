@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -16,6 +17,8 @@ internal class SnapEntrySerializer
         {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             Converters = { new JsonStringEnumConverter(), new RuntimeTypeConverter() }
         };
         _includeTime = includeTime;
@@ -37,7 +40,7 @@ internal class SnapEntrySerializer
 
         if (_includeTime)
         {
-            rootNode["Timestamp"] = entry.Timestamp;
+            rootNode["Timestamp"] = entry.Timestamp.ToString("HH:mm:ss.fff");
         }
 
         // Try to serialize Data and Context, capturing any errors

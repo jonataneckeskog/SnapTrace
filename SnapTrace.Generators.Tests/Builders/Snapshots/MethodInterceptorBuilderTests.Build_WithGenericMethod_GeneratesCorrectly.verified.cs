@@ -1,10 +1,13 @@
 ﻿[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-public static void MyTestMethod_SnapTrace_void<T>(global::MyNamespace.MyTestClass @this) where T : class
+public static void MyTestMethod_SnapTrace_void<T>(this global::MyNamespace.MyTestClass @this) where T : class
 {
-    object? data = null;
-    var context = GetClassContext_SnapTrace(@this);
+    object[]? data = null;
 
-    CallRecord_SnapTrace(null!, "MyTestMethod", data, context, global::SnapTrace.SnapStatus.Call);
+    var contextBefore = GetClassContext_SnapTrace(@this);
+    CallRecord_SnapTrace(null!, "MyTestMethod", data, contextBefore, global::SnapTrace.Runtime.Models.SnapStatus.Call);
+
     @this.MyTestMethod();
-    CallRecord_SnapTrace(null!, "MyTestMethod", null, context, global::SnapTrace.SnapStatus.Return);
+
+    var contextAfter = GetClassContext_SnapTrace(@this);
+    CallRecord_SnapTrace(null!, "MyTestMethod", null, contextAfter, global::SnapTrace.Runtime.Models.SnapStatus.Return);
 }

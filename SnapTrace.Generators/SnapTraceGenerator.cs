@@ -8,6 +8,9 @@ using Microsoft.CodeAnalysis.Text;
 using SnapTrace.Generators.Builders;
 using SnapTrace.Generators.Definitions;
 using SnapTrace.Generators.Models;
+using Microsoft.CodeAnalysis.CSharp;
+using SnapTrace.Generators.Constants;
+using System;
 
 namespace SnapTrace.Generators;
 
@@ -22,20 +25,47 @@ public class SnapTraceGenerator : IIncrementalGenerator
                 "SnapTrace.Attributes.g.cs",
                 SourceText.From(AttributeDefinitions.Definitions, Encoding.UTF8));
         });
+        context.RegisterPostInitializationOutput(ctx =>
+        {
+            ctx.AddSource(
+                "SnapTrace.SnapCloner.g.cs",
+                SourceText.From(GeneratorUtils.SnapCloner, Encoding.UTF8));
+        });
 
-        // 1. Find all invocations of methods that have the SnapTrace attribute
         var provider = context.SyntaxProvider.CreateSyntaxProvider(
             predicate: static (node, _) => node is InvocationExpressionSyntax,
-            transform: static (ctx, ct) => GetInterceptedCall(ctx))
+            transform: static (ctx, ct) => GetInterceptedCall(ctx, ct))
             .Where(static call => call is not null);
 
-        // 2. Collect all valid calls and generate the source
+        var disableSignal = context.AnalyzerConfigOptionsProvider.Select(static (options, _) =>
+        {
+            options.GlobalOptions.TryGetValue("build_property.SnapTraceDisable", out var isDisabledStr);
+            return string.Equals(isDisabledStr, "true", StringComparison.OrdinalIgnoreCase);
+        });
+
+        var combinedProvider = context.CompilationProvider
+            .Combine(provider.Collect())
+            .Combine(disableSignal);
+
         context.RegisterSourceOutput(
-            context.CompilationProvider.Combine(provider.Collect()),
-            static (spc, source) => ExecuteGeneration(spc, source.Right!));
+            combinedProvider,
+            static (spc, source) =>
+            {
+                var isDisabled = source.Right;
+
+                if (isDisabled)
+                {
+                    return;
+                }
+
+                var compilationAndCalls = source.Left;
+                var calls = compilationAndCalls.Right;
+
+                ExecuteGeneration(spc, calls!);
+            });
     }
 
-    private static InterceptedCall? GetInterceptedCall(GeneratorSyntaxContext ctx)
+    private static InterceptedCall? GetInterceptedCall(GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
     {
         var invocation = (InvocationExpressionSyntax)ctx.Node;
         var semanticModel = ctx.SemanticModel;
@@ -53,24 +83,26 @@ public class SnapTraceGenerator : IIncrementalGenerator
         if (!hasAttribute)
             return null;
 
-        var expressionSyntax = invocation.Expression switch
-        {
-            MemberAccessExpressionSyntax memberAccess => memberAccess.Name,
-            _ => invocation.Expression
-        };
+#pragma warning disable RSEXPERIMENTAL002
 
-        var lineSpan = expressionSyntax.SyntaxTree.GetLineSpan(expressionSyntax.Span);
-        if (!lineSpan.IsValid) return null;
+        var interceptableLocation = semanticModel.GetInterceptableLocation(invocation, ct);
+        if (interceptableLocation is null) return null;
 
-        string filePath = expressionSyntax.SyntaxTree.FilePath;
-        int line = lineSpan.StartLinePosition.Line + 1;
-        int column = lineSpan.StartLinePosition.Character + 1;
+        string interceptorAttributeString = interceptableLocation.GetInterceptsLocationAttributeSyntax();
+
+#pragma warning restore RSEXPERIMENTAL002
+
+        // ----------------------------------------
 
         // Build Metadata
         var classData = ExtractClassData(methodSymbol.ContainingType, symbols);
         var methodData = ExtractMethodData(methodSymbol, symbols);
 
-        return new InterceptedCall(filePath, line, column, methodData, classData);
+        return new InterceptedCall(
+            interceptorAttributeString,
+            methodData,
+            classData
+        );
     }
 
     private static void ExecuteGeneration(SourceProductionContext spc, ImmutableArray<InterceptedCall> calls)
@@ -108,7 +140,11 @@ public class SnapTraceGenerator : IIncrementalGenerator
                             var methodInfo = methodGroup.Key;
                             classBuilder.WithMethod(methodInfo.Name, methodInfo.Situation, methodBuilder =>
                             {
-                                methodBuilder.WithReturn(methodInfo.ReturnType, false, false); // Ignored deep/redact for return here
+                                methodBuilder.WithReturn(
+                                    methodInfo.ReturnType,
+                                    methodInfo.DeepCopyReturn,
+                                    methodInfo.RedactedReturn
+                                );
 
                                 if (!string.IsNullOrEmpty(methodInfo.TypeParameters))
                                 {
@@ -117,12 +153,12 @@ public class SnapTraceGenerator : IIncrementalGenerator
 
                                 foreach (var p in methodInfo.Parameters)
                                 {
-                                    methodBuilder.WithParameter(p.Name, p.Type, p.Modifier, p.IsParams, p.DeepCopy, p.Redacted);
+                                    methodBuilder.WithParameter(p.Name, p.Type, p.Modifier, p.IsParams, p.DeepCopy, p.Redacted, p.IsNonNullable);
                                 }
 
                                 foreach (var call in methodGroup)
                                 {
-                                    methodBuilder.AddLocation(call.FilePath, call.Line, call.Column);
+                                    methodBuilder.AddLocation(call.InterceptorAttributeString);
                                 }
                             });
                         }
@@ -177,20 +213,46 @@ public class SnapTraceGenerator : IIncrementalGenerator
         if (methodSymbol.ReturnsByRef) situation |= MethodSituation.ReturnsRef;
         if (methodSymbol.ReturnsByRefReadonly) situation |= MethodSituation.ReturnsRefReadonly;
 
-        var parameters = methodSymbol.Parameters.Select(p => new ParameterData(
-            Name: p.Name,
-            Type: p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            Modifier: p.RefKind switch
+        // 1. Check Return Attributes
+        bool returnRedacted = HasAttribute(methodSymbol, symbols.IgnoreAttribute) ||
+                             methodSymbol.GetReturnTypeAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.IgnoreAttribute));
+
+        // 2. Determine if the return value should be DeepCopied
+        bool returnDeepCopy = !methodSymbol.ReturnsVoid &&
+                             !methodSymbol.ReturnType.IsValueType &&
+                             methodSymbol.ReturnType.SpecialType != SpecialType.System_String;
+
+        var parameters = new List<ParameterData>();
+        foreach (var param in methodSymbol.Parameters)
+        {
+            // Check for SnapTraceDeep attribute
+            bool paramDeepCopy = param.GetAttributes().Any(attr => 
+                SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.DeepAttribute));
+            
+            // Check for SnapTraceIgnore attribute
+            bool paramRedacted = param.GetAttributes().Any(attr => 
+                SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.IgnoreAttribute));
+            bool isNonNullable = param.NullableAnnotation == NullableAnnotation.NotAnnotated;
+
+            string paramType = param.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            string modifier = param.RefKind switch
             {
-                RefKind.Ref => "ref",
-                RefKind.Out => "out",
-                RefKind.In => "in",
+                RefKind.Out => "out ",
+                RefKind.Ref => "ref ",
+                RefKind.RefReadOnly => "ref readonly ",
                 _ => ""
-            },
-            IsParams: p.IsParams,
-            DeepCopy: false, // Ignored as requested
-            Redacted: HasAttribute(p, symbols.IgnoreAttribute)
-        )).ToList();
+            };
+
+            parameters.Add(new ParameterData(
+                param.Name,
+                paramType,
+                modifier,
+                param.IsParams,
+                paramDeepCopy,
+                paramRedacted,
+                isNonNullable
+            ));
+        }
 
         string typeParams = methodSymbol.TypeParameters.Any()
             ? $"<{string.Join(", ", methodSymbol.TypeParameters.Select(t => t.Name))}>"
@@ -202,8 +264,10 @@ public class SnapTraceGenerator : IIncrementalGenerator
             IsVoid: methodSymbol.ReturnsVoid,
             Situation: situation,
             TypeParameters: typeParams,
-            WhereConstraints: "", // Add logic if specific constraint
-            Parameters: parameters
+            WhereConstraints: "",
+            Parameters: parameters,
+            DeepCopyReturn: returnDeepCopy,
+            RedactedReturn: returnRedacted
         );
     }
 

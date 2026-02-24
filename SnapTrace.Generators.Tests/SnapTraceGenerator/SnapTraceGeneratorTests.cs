@@ -53,4 +53,21 @@ public class SnapTraceGeneratorTests
         // Assert
         await Verify(generatedCode, "cs");
     }
+
+    [Fact]
+    public async Task GeneratesUniqueLocations_ForMethod()
+    {
+        var source = LoadTestData("MultipleMethodCalls.cs");
+
+        // Act
+        var result = GeneratorTestHelper.RunGenerator(source);
+
+        var generatedTree = result.GeneratedTrees.FirstOrDefault(t => t.FilePath.EndsWith("SnapTrace.Interceptors.g.cs"));
+        Assert.NotNull(generatedTree);
+
+        var generatedCode = generatedTree.GetText().ToString();
+
+        // Assert
+        await Verify(generatedCode, "cs");
+    }
 }

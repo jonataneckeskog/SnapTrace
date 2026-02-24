@@ -99,6 +99,85 @@ dotnet build -c Release
 **No-Trace Build (SnapTrace Completely Stripped):**
 
 ```bash
-dotnet build -c Release -p:NoTrace=true
+dotnet build -c Release -p:SnapTraceDisable=true
 
+```
+
+## Examples
+
+### BankService
+
+#### Program
+
+```csharp
+using SnapTrace;
+
+// 1. Setup the recorder at the very start of the app
+SnapTraceObserver.Initialize(new SnapOptions
+{
+    BufferSize = 10,
+    RecordTimestamp = true,
+    Output = message => Console.WriteLine($"--- SNAPTRACE CRASH REPORT ---\n{message}")
+});
+
+Console.WriteLine("Starting SnapTrace Playground...");
+
+// 2. Trigger the intercepted code
+var service = new BankService();
+service.Deposit("1234-SECRET", 500.00m);
+
+// 3. Simulate a crash to cause a dump
+throw new ArgumentException("Something went wrong!");
+
+
+[SnapTrace]
+public class BankService
+{
+    [SnapTraceContext]
+    private decimal _currentBalance = 1000.00m;
+
+    public void Deposit([SnapTraceIgnore] string pin, decimal amount)
+    {
+        _currentBalance += amount;
+        Console.WriteLine($"Deposited {amount}. New Balance: {_currentBalance}");
+    }
+}
+```
+
+#### Output
+
+```txt
+Starting SnapTrace Playground...
+Deposited 500.00. New Balance: 1500.00
+--- SNAPTRACE CRASH REPORT ---
+{
+  "Status": "Call",
+  "Method": "Deposit",
+  "Timestamp": "14:43:01.491",
+  "Data": [
+    "[REDACTED]",
+    500.00
+  ],
+  "Context": {
+    "_currentBalance": 1000.00
+  }
+}
+{
+  "Status": "Return",
+  "Method": "Deposit",
+  "Timestamp": "14:43:01.497",
+  "Data": null,
+  "Context": {
+    "_currentBalance": 1500.00
+  }
+}
+{
+  "Status": "Error",
+  "Method": "<Main>$",
+  "Timestamp": "14:43:01.556",
+  "Data": "Something went wrong!",
+  "Context": "   at Program.<Main>$(String[] args) in /path/to/project/Program.cs:line 18"
+}
+Unhandled exception. System.ArgumentException: Something went wrong!
+   at Program.<Main>$(String[] args) in /path/to/project/Program.cs:line 18
 ```

@@ -54,17 +54,15 @@ public class MethodInterceptorBuilder
         return this;
     }
 
-    public MethodInterceptorBuilder WithParameter(string name, string type, string modifier = "", bool isParams = false, bool deepCopy = false, bool redacted = false)
+    public MethodInterceptorBuilder WithParameter(string name, string type, string modifier = "", bool isParams = false, bool deepCopy = false, bool redacted = false, bool isNonNullable = false)
     {
-        _params.Add(new ParameterDefinition(name, type, modifier, isParams, deepCopy, redacted));
+        _params.Add(new ParameterDefinition(name, type, modifier, isParams, deepCopy, redacted, isNonNullable));
         return this;
     }
 
-    public MethodInterceptorBuilder AddLocation(string path, int line, int col)
+    public void AddLocation(string roslynGeneratedAttribute)
     {
-        var safePath = path.Replace("\\", "\\\\");
-        _locations.Add($@"[global::System.Runtime.CompilerServices.InterceptsLocation(@""{safePath}"", {line}, {col})]");
-        return this;
+        _locations.Add(roslynGeneratedAttribute);
     }
 
     // --- The Build Engine ---
@@ -75,6 +73,20 @@ public class MethodInterceptorBuilder
         bool isMethodStatic = _situation.HasFlag(MethodSituation.Static);
         bool isStaticClass = _classSituation.HasFlag(ClassSituation.Static);
         bool isStruct = _classSituation.HasFlag(ClassSituation.IsStruct) || _classSituation.HasFlag(ClassSituation.IsRefStruct);
+        string refModifier = isStruct ? "ref " : "";
+        string saveContext;
+        if (isStaticClass)
+        {
+            saveContext = "GetClassContext_SnapTrace()";
+        }
+        else if (isMethodStatic)
+        {
+            saveContext = "null";
+        }
+        else
+        {
+            saveContext = $"GetClassContext_SnapTrace({refModifier}@this)";
+        }
 
         // 2. Append InterceptsLocation
         foreach (var loc in _locations)
@@ -116,7 +128,7 @@ public class MethodInterceptorBuilder
         if (!isMethodStatic)
         {
             string thisModifier = isStruct ? "ref " : "";
-            methodParams.Add($"{thisModifier}{targetType} @this");
+            methodParams.Add($"this {thisModifier}{targetType} @this");
         }
 
         foreach (var p in _params)
@@ -142,8 +154,8 @@ public class MethodInterceptorBuilder
         writer.WriteLine("{");
         writer.Indent++;
 
-        // 8. Save method parameters to an object array
-        writer.Write("object? data = ");
+        // 8. Save method parameters to an object
+        writer.Write("object[]? data = ");
         if (_params.Count == 0)
         {
             writer.WriteLine("null;");
@@ -157,49 +169,81 @@ public class MethodInterceptorBuilder
                     return $"/* {p.Name} */ \"[REDACTED]\"";
 
                 if (p.DeepCopy)
-                    return $"/* {p.Name} */ {p.Name} is null ? default : global::System.Text.Json.JsonSerializer.Deserialize<{p.Type}>(global::System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({p.Name}))";
+                    return $"/* {p.Name} */ global::SnapTrace.Generated.SnapCloner.Clone((object){p.Name})";
 
-                return $"/* {p.Name} */ {p.Name}";
+                return $"/* {p.Name} */ ((object){p.Name})?.ToString() ?? \"null\"";
             });
 
             writer.Write(string.Join(", ", arrayParts));
             writer.WriteLine(" };");
         }
-
-        // 9. Save the context
-        if (isStaticClass)
-        {
-            writer.WriteLine("var context = GetClassContext_SnapTrace();");
-        }
-        else if (isMethodStatic)
-        {
-            writer.WriteLine("object? context = null;");
-        }
-        else
-        {
-            string refModifier = isStruct ? "ref " : "";
-            writer.WriteLine($"var context = GetClassContext_SnapTrace({refModifier}@this);");
-        }
         writer.InnerWriter.WriteLine();
 
+        // 9. Save the context
+        writer.WriteLine($"var contextBefore = {saveContext};");
+
         // 10. Record the Entry
-        writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, global::SnapTrace.SnapStatus.Call);");
+        writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", data, contextBefore, {BuilderConstants.SnapStatusPath}.Call);");
+        writer.InnerWriter.WriteLine();
 
         // 11. EXECUTE ORIGINAL AND CAPTURE RETURN
         var target = isMethodStatic ? targetType : "@this";
-        string callArgs = string.Join(", ", _params.Select(p => p.Name));
+        string callArgs = string.Join(", ", _params.Select(p => p.IsNonNullable ? $"{p.Name}!" : p.Name));
 
         if (_return.IsVoid)
         {
             writer.WriteLine($"{target}.{_methodName}({callArgs});");
-            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", null, context, global::SnapTrace.SnapStatus.Return);");
+            writer.InnerWriter.WriteLine();
+            writer.WriteLine($"var contextAfter = {saveContext};");
+            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", null, contextAfter, {BuilderConstants.SnapStatusPath}.Return);");
         }
         else
         {
-            writer.WriteLine($"var result = {target}.{_methodName}({callArgs});");
-            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, global::SnapTrace.SnapStatus.Return);");
+            string resultRefModifier = "";
+            string refCallModifier = "";
+
+            if (_situation.HasFlag(MethodSituation.ReturnsRef))
+            {
+                resultRefModifier = "ref var ";
+                refCallModifier = "ref ";
+            }
+            else if (_situation.HasFlag(MethodSituation.ReturnsRefReadonly))
+            {
+                resultRefModifier = "ref readonly var ";
+                refCallModifier = "ref ";
+            }
+            else
+            {
+                resultRefModifier = "var ";
+            }
+
+            // Use the refCallModifier when calling the target method
+            writer.WriteLine($"{resultRefModifier}result = {refCallModifier}{target}.{_methodName}({callArgs});");
             writer.InnerWriter.WriteLine();
-            writer.WriteLine("return result;");
+
+            string recordedResult;
+            if (_return.Redacted)
+            {
+                recordedResult = "\"[REDACTED]\"";
+            }
+            else if (_return.DeepCopy)
+            {
+                recordedResult = $"global::SnapTrace.Generated.SnapCloner.Clone((object)result)";
+            }
+            else
+            {
+                recordedResult = "((object)result)?.ToString() ?? \"null\"";
+            }
+
+            writer.WriteLine($"var contextAfter = {saveContext};");
+            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", {recordedResult}, contextAfter, {BuilderConstants.SnapStatusPath}.Return);");
+            writer.InnerWriter.WriteLine();
+
+            string returnModifier = (_situation.HasFlag(MethodSituation.ReturnsRef) || _situation.HasFlag(MethodSituation.ReturnsRefReadonly))
+                ? "ref "
+                : "";
+
+            writer.WriteLine($"return {returnModifier}result;");
         }
 
         // 12. Close the method
@@ -214,6 +258,8 @@ public class MethodInterceptorBuilder
             .Replace("[]", "Array")
             .Replace("<", "_")
             .Replace(">", "_")
+            .Replace("(", "Tup_")
+            .Replace(")", "_")
             .Replace(",", "_")
             .Replace(" ", "")
             .Replace(".", "_")

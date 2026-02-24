@@ -2,12 +2,60 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>SnapTrace</AssemblyName>
+    <RootNamespace>Snaptrace</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <IsPackable>true</IsPackable>
+
+    <!-- NuGet metadata -->
+    <PackageId>SnapTrace</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Jonatan Eckeskog</Authors>
+    <Description>A .NET library for automatically tracing method calls for debugging and analysis.</Description>
+    <PackageProjectUrl>https://github.com/jonataneckeskog/SnapTrace</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jonataneckeskog/SnapTrace</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>tracing source-generator debugging</PackageTags>
+
+    <!-- README inclusion -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Symbols & SourceLink -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <!-- Deterministic builds -->
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    
+    <None Include="SnapTrace.targets" Pack="true" PackagePath="build" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <InternalsVisibleTo Include="SnapTrace.Runtime.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SnapTrace.Generators\SnapTrace.Generators.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_AddGeneratorToPackage</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <Target Name="_AddGeneratorToPackage">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="..\SnapTrace.Generators\bin\$(Configuration)\netstandard2.0\SnapTrace.Generators.dll" 
+                              PackagePath="analyzers/dotnet/cs" />
+    </ItemGroup>
+  </Target>
 
 </Project>

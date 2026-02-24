@@ -1,7 +1,7 @@
 ﻿internal static class MyClass_SnapTrace
 {
     [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = "Record")]
-    extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);
+    extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTraceObserver? target, string method, object? data, object? context, global::SnapTrace.Runtime.Models.SnapStatus status);
 
     [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static object? GetClassContext_SnapTrace(global::MyNamespace.MyClass @this)
@@ -10,13 +10,16 @@
     }
 
     [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void MyMethod_SnapTrace_void(global::MyNamespace.MyClass @this)
+    public static void MyMethod_SnapTrace_void(this global::MyNamespace.MyClass @this)
     {
-        object? data = null;
-        var context = GetClassContext_SnapTrace(@this);
+        object[]? data = null;
 
-        CallRecord_SnapTrace(null!, "MyMethod", data, context, global::SnapTrace.SnapStatus.Call);
+        var contextBefore = GetClassContext_SnapTrace(@this);
+        CallRecord_SnapTrace(null!, "MyMethod", data, contextBefore, global::SnapTrace.Runtime.Models.SnapStatus.Call);
+
         @this.MyMethod();
-        CallRecord_SnapTrace(null!, "MyMethod", null, context, global::SnapTrace.SnapStatus.Return);
+
+        var contextAfter = GetClassContext_SnapTrace(@this);
+        CallRecord_SnapTrace(null!, "MyMethod", null, contextAfter, global::SnapTrace.Runtime.Models.SnapStatus.Return);
     }
 }

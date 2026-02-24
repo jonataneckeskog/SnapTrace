@@ -5,9 +5,9 @@ namespace SnapTrace.Runtime.Models;
 /// no serialization is required.
 /// </summary>
 /// <param name="Method"></param>
-/// <param name="Args"></param>
+/// <param name="Context"></param>
 /// <param name="Data"></param>
-/// <param name="Status"=></param>
+/// <param name="Status"></param>
 internal record SnapEntry(string Method, object? Data, object? Context, SnapStatus Status)
 {
     /// <summary>

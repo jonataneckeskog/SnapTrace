@@ -1,15 +1,14 @@
 using System.Diagnostics;
-using SnapTrace.Runtime.Configuration;
 using SnapTrace.Runtime.Internal;
 using SnapTrace.Runtime.Models;
 
-namespace SnapTrace.Runtime;
+namespace SnapTrace;
 
 /// <summary>
 /// The main entrypoint of SnapTrace. Handles the trace data and provides
 /// methods to update it.
 /// </summary>
-public static class SnapTraceObserver
+public partial class SnapTraceObserver
 {
     private static RingBuffer<SnapEntry>? _buffer;
     private static SnapOptions? _options;
@@ -65,7 +64,10 @@ public static class SnapTraceObserver
     /// Record a SnapEntry to the buffer safely. Exposed to the generated code via UnsafeAccessor,
     /// while the user cannot directly call it.
     /// </summary>
-    /// <param name="entry">The entry to record.</param>
+    /// <param name="method"></param>
+    /// <param name="data"></param>
+    /// <param name="context"></param>
+    /// <param name="status"></param>
     private static void Record(string method, object? data, object? context, SnapStatus status)
     {
         if (_isInitializedInt == 0) return;

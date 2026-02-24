@@ -14,7 +14,8 @@ namespace SnapTrace.Generated.TestApp
             return null;
         }
 
-        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "ZKqIaLeH1sE3nL14oNQcbE8BAABDOlxUZXN0c1xUZXN0UHJvamVjdC5jcw==")]
+        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "NBaqmekbRfBuYwHqUY3Alk8BAABDOlxUZXN0c1xUZXN0UHJvamVjdC5jcw==")]
+        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "NBaqmekbRfBuYwHqUY3AlnQBAABDOlxUZXN0c1xUZXN0UHJvamVjdC5jcw==")]
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void DoWork_SnapTrace_void_string(this global::TestApp.MyService @this, string input)
         {

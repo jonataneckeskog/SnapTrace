@@ -12,16 +12,20 @@ namespace SnapTrace.Generators.Builders;
 public class NamespaceBuilder
 {
     private readonly List<ClassInterceptorBuilder> _classes = new();
-    private readonly string _namespaceName;
+    private readonly string _originalNamespaceName;
+    private readonly string _generatedNamespaceName;
 
     public NamespaceBuilder(string namespaceName)
     {
-        _namespaceName = namespaceName;
+        _originalNamespaceName = namespaceName;
+        _generatedNamespaceName = string.IsNullOrWhiteSpace(namespaceName)
+            ? "SnapTrace.Generated"
+            : $"SnapTrace.Generated.{namespaceName}";
     }
 
     public NamespaceBuilder WithClass(string className, ClassSituation situation, Action<ClassInterceptorBuilder> config)
     {
-        var mb = new ClassInterceptorBuilder($"global::{_namespaceName}", className, situation);
+        var mb = new ClassInterceptorBuilder(_originalNamespaceName, className, situation);
         config(mb);
         _classes.Add(mb);
         return this;
@@ -29,12 +33,12 @@ public class NamespaceBuilder
 
     internal void InternalBuild(IndentedTextWriter writer)
     {
-        bool isGlobalNamespace = string.IsNullOrWhiteSpace(_namespaceName);
+        bool isGlobalNamespace = string.IsNullOrWhiteSpace(_generatedNamespaceName);
 
         // 1. Open the namespace block
         if (!isGlobalNamespace)
         {
-            writer.WriteLine($"namespace {_namespaceName}");
+            writer.WriteLine($"namespace {_generatedNamespaceName}");
             writer.Write("{");
             writer.Indent++; // Everything inside this namespace is now indented
         }

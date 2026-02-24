@@ -1,5 +1,3 @@
-using SnapTrace.Runtime.Configuration;
-
 namespace SnapTrace.Runtime.Tests.Configuration;
 
 public class SnapOptionsTests
