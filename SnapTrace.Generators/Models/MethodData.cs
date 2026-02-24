@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using SnapTrace.Generators.Definitions;
 
 namespace SnapTrace.Generators.Models;
@@ -21,4 +23,40 @@ internal record MethodData(
     MethodSituation Situation,
     string TypeParameters,
     string WhereConstraints,
-    IReadOnlyList<ParameterData> Parameters);
+    IReadOnlyList<ParameterData> Parameters)
+{
+    public virtual bool Equals(MethodData? other)
+    {
+        if (other is null) return false;
+        return Name == other.Name &&
+               ReturnType == other.ReturnType &&
+               IsVoid == other.IsVoid &&
+               Situation == other.Situation &&
+               TypeParameters == other.TypeParameters &&
+               Parameters.SequenceEqual(other.Parameters);
+    }
+
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = 17;
+            hash = (hash * 23) + (Name?.GetHashCode() ?? 0);
+            hash = (hash * 23) + (ReturnType?.GetHashCode() ?? 0);
+            hash = (hash * 23) + IsVoid.GetHashCode();
+            hash = (hash * 23) + Situation.GetHashCode();
+            hash = (hash * 23) + (TypeParameters?.GetHashCode() ?? 0);
+            hash = (hash * 23) + (WhereConstraints?.GetHashCode() ?? 0);
+
+            if (Parameters != null)
+            {
+                foreach (var p in Parameters)
+                {
+                    hash = (hash * 23) + (p?.GetHashCode() ?? 0);
+                }
+            }
+
+            return hash;
+        }
+    }
+}
