@@ -7,6 +7,7 @@ internal static class AttributeDefinitions
     /// meaning that the compilator can chose to ignore them if prompted.
     /// </summary>
     internal const string Definitions = @"
+#nullable enable
 using System;   
 using System.Diagnostics;
 
@@ -14,7 +15,17 @@ using System.Diagnostics;
 namespace System.Runtime.CompilerServices
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-    internal sealed class InterceptsLocationAttribute(int version, string data) : Attribute;
+    internal sealed class InterceptsLocationAttribute : Attribute
+    {
+        private readonly int _version;
+        private readonly string? _data;
+
+        public InterceptsLocationAttribute(int version, string data)
+        {
+            _version = version;
+            _data = data;
+        }
+    }
 }
 
 namespace SnapTrace
