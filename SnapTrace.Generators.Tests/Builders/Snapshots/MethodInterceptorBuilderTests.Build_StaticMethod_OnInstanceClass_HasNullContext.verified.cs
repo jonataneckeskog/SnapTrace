@@ -4,7 +4,7 @@ public static void MyTestMethod_SnapTrace_void()
     object? data = null;
     object? context = null;
 
-    CallRecord_SnapTrace(null!, "MyTestMethod", data, context, global::SnapTrace.SnapStatus.Call);
+    CallRecord_SnapTrace(null!, "MyTestMethod", data, context, global::SnapTrace.Runtime.Models.SnapStatus.Call);
     global::MyNamespace.MyTestClass.MyTestMethod();
-    CallRecord_SnapTrace(null!, "MyTestMethod", null, context, global::SnapTrace.SnapStatus.Return);
+    CallRecord_SnapTrace(null!, "MyTestMethod", null, context, global::SnapTrace.Runtime.Models.SnapStatus.Return);
 }

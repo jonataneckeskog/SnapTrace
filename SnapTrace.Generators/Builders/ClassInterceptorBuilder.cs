@@ -81,8 +81,8 @@ public class ClassInterceptorBuilder
         writer.Indent++;
 
         // 4. Static Record Accessor
-        writer.WriteLine("[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = \"Record\")]");
-        writer.WriteLine("extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);");
+        writer.WriteLine("""[global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = "Record")]""");
+        writer.WriteLine($"""extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTraceObserver? target, string method, object? data, object? context, {BuilderConstants.SnapStatusPath} status);""");
         writer.InnerWriter.WriteLine();
 
         // Parameter logic

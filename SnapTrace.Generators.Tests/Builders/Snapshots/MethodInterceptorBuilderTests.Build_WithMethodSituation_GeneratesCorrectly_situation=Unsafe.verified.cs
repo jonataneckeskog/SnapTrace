@@ -4,7 +4,7 @@ public static unsafe void MyTestMethod_SnapTrace_void(global::MyNamespace.MyTest
     object? data = null;
     var context = GetClassContext_SnapTrace(@this);
 
-    CallRecord_SnapTrace(null!, "MyTestMethod", data, context, global::SnapTrace.SnapStatus.Call);
+    CallRecord_SnapTrace(null!, "MyTestMethod", data, context, global::SnapTrace.Runtime.Models.SnapStatus.Call);
     @this.MyTestMethod();
-    CallRecord_SnapTrace(null!, "MyTestMethod", null, context, global::SnapTrace.SnapStatus.Return);
+    CallRecord_SnapTrace(null!, "MyTestMethod", null, context, global::SnapTrace.Runtime.Models.SnapStatus.Return);
 }

@@ -5,7 +5,7 @@ namespace TestApp
     internal static class UserService_SnapTrace
     {
         [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = "Record")]
-        extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTracer? target, string method, object? data, object? context, global::SnapTrace.SnapStatus status);
+        extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTraceObserver? target, string method, object? data, object? context, global::SnapTrace.Runtime.Models.SnapStatus status);
 
         [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "_userId")]
         extern static ref string Get__userId_SnapTrace(global::TestApp.UserService @this);
@@ -23,9 +23,9 @@ namespace TestApp
             object? data = new object[] { /* name */ name };
             var context = GetClassContext_SnapTrace(@this);
 
-            CallRecord_SnapTrace(null!, "UpdateUser", data, context, global::SnapTrace.SnapStatus.Call);
+            CallRecord_SnapTrace(null!, "UpdateUser", data, context, global::SnapTrace.Runtime.Models.SnapStatus.Call);
             @this.UpdateUser(name);
-            CallRecord_SnapTrace(null!, "UpdateUser", null, context, global::SnapTrace.SnapStatus.Return);
+            CallRecord_SnapTrace(null!, "UpdateUser", null, context, global::SnapTrace.Runtime.Models.SnapStatus.Return);
         }
     }
 }

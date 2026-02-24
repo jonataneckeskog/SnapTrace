@@ -183,7 +183,7 @@ public class MethodInterceptorBuilder
         writer.InnerWriter.WriteLine();
 
         // 10. Record the Entry
-        writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, global::SnapTrace.SnapStatus.Call);");
+        writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", data, context, {BuilderConstants.SnapStatusPath}.Call);");
 
         // 11. EXECUTE ORIGINAL AND CAPTURE RETURN
         var target = isMethodStatic ? targetType : "@this";
@@ -192,12 +192,12 @@ public class MethodInterceptorBuilder
         if (_return.IsVoid)
         {
             writer.WriteLine($"{target}.{_methodName}({callArgs});");
-            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", null, context, global::SnapTrace.SnapStatus.Return);");
+            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", null, context, {BuilderConstants.SnapStatusPath}.Return);");
         }
         else
         {
             writer.WriteLine($"var result = {target}.{_methodName}({callArgs});");
-            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, global::SnapTrace.SnapStatus.Return);");
+            writer.WriteLine($"CallRecord_SnapTrace(null!, \"{_methodName}\", result, context, {BuilderConstants.SnapStatusPath}.Return);");
             writer.InnerWriter.WriteLine();
             writer.WriteLine("return result;");
         }
