@@ -60,11 +60,9 @@ public class MethodInterceptorBuilder
         return this;
     }
 
-    public MethodInterceptorBuilder AddLocation(string path, int line, int col)
+    public void AddLocation(string roslynGeneratedAttribute)
     {
-        var safePath = path.Replace("\\", "\\\\");
-        _locations.Add($@"[global::System.Runtime.CompilerServices.InterceptsLocation(@""{safePath}"", {line}, {col})]");
-        return this;
+        _locations.Add(roslynGeneratedAttribute);
     }
 
     // --- The Build Engine ---

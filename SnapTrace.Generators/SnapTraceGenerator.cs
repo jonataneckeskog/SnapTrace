@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.Text;
 using SnapTrace.Generators.Builders;
 using SnapTrace.Generators.Definitions;
 using SnapTrace.Generators.Models;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace SnapTrace.Generators;
 
@@ -23,19 +24,18 @@ public class SnapTraceGenerator : IIncrementalGenerator
                 SourceText.From(AttributeDefinitions.Definitions, Encoding.UTF8));
         });
 
-        // 1. Find all invocations of methods that have the SnapTrace attribute
         var provider = context.SyntaxProvider.CreateSyntaxProvider(
             predicate: static (node, _) => node is InvocationExpressionSyntax,
-            transform: static (ctx, ct) => GetInterceptedCall(ctx))
+            // Pass 'ct' into GetInterceptedCall
+            transform: static (ctx, ct) => GetInterceptedCall(ctx, ct))
             .Where(static call => call is not null);
 
-        // 2. Collect all valid calls and generate the source
         context.RegisterSourceOutput(
             context.CompilationProvider.Combine(provider.Collect()),
             static (spc, source) => ExecuteGeneration(spc, source.Right!));
     }
 
-    private static InterceptedCall? GetInterceptedCall(GeneratorSyntaxContext ctx)
+    private static InterceptedCall? GetInterceptedCall(GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
     {
         var invocation = (InvocationExpressionSyntax)ctx.Node;
         var semanticModel = ctx.SemanticModel;
@@ -53,24 +53,35 @@ public class SnapTraceGenerator : IIncrementalGenerator
         if (!hasAttribute)
             return null;
 
-        var expressionSyntax = invocation.Expression switch
-        {
-            MemberAccessExpressionSyntax memberAccess => memberAccess.Name,
-            _ => invocation.Expression
-        };
+        // --- NEW ROSLYN INTERCEPTOR API USAGE ---
 
-        var lineSpan = expressionSyntax.SyntaxTree.GetLineSpan(expressionSyntax.Span);
-        if (!lineSpan.IsValid) return null;
+        // Disable the experimental Roslyn warning
+#pragma warning disable RSEXPERIMENTAL002
 
-        string filePath = expressionSyntax.SyntaxTree.FilePath;
-        int line = lineSpan.StartLinePosition.Line + 1;
-        int column = lineSpan.StartLinePosition.Character + 1;
+        // 1. Ask the SemanticModel for the exact interceptable location data
+        var interceptableLocation = semanticModel.GetInterceptableLocation(invocation, ct);
+        if (interceptableLocation is null) return null;
+
+        // 2. Get the pre-formatted attribute string! 
+        string interceptorAttributeString = interceptableLocation.GetInterceptsLocationAttributeSyntax();
+
+        // Restore the warning so we don't accidentally ignore it elsewhere
+#pragma warning restore RSEXPERIMENTAL002
+
+
+        // ----------------------------------------
 
         // Build Metadata
         var classData = ExtractClassData(methodSymbol.ContainingType, symbols);
         var methodData = ExtractMethodData(methodSymbol, symbols);
 
-        return new InterceptedCall(filePath, line, column, methodData, classData);
+        // You will need to update your InterceptedCall constructor to accept this string.
+        // If you still need filePath, line, and column for logging, you can keep the old calculation and pass them too.
+        return new InterceptedCall(
+            interceptorAttributeString, // Pass this to your record!
+            methodData,
+            classData
+        );
     }
 
     private static void ExecuteGeneration(SourceProductionContext spc, ImmutableArray<InterceptedCall> calls)
@@ -122,7 +133,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
 
                                 foreach (var call in methodGroup)
                                 {
-                                    methodBuilder.AddLocation(call.FilePath, call.Line, call.Column);
+                                    methodBuilder.AddLocation(call.InterceptorAttributeString);
                                 }
                             });
                         }
