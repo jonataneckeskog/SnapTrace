@@ -145,12 +145,10 @@ public class SnapTraceObserverTests
         // Assert
         Assert.NotNull(capturedOutput);
 
-        // Check for the recorded call as JSON
-        Assert.Contains("\"Method\":\"MyTestClass.MyTestMethod\"", capturedOutput);
-        Assert.Contains("\"Status\":\"Call\"", capturedOutput);
+        Assert.Contains("\"Method\": \"MyTestClass.MyTestMethod\"", capturedOutput);
+        Assert.Contains("\"Status\": \"Call\"", capturedOutput);
 
-        // Check for the recorded exception as JSON
-        Assert.Contains("\"Data\":\"Test Crash\"", capturedOutput);
-        Assert.Contains("\"Status\":\"Error\"", capturedOutput);
+        Assert.Contains("\"Data\": \"Test Crash\"", capturedOutput);
+        Assert.Contains("\"Status\": \"Error\"", capturedOutput);
     }
 }
