@@ -2,9 +2,12 @@
 public static void MyTestMethod_SnapTrace_void()
 {
     object? data = null;
-    object? context = null;
 
-    CallRecord_SnapTrace(null!, "MyTestMethod", data, context, global::SnapTrace.Runtime.Models.SnapStatus.Call);
+    var contextBefore = null;
+    CallRecord_SnapTrace(null!, "MyTestMethod", data, contextBefore, global::SnapTrace.Runtime.Models.SnapStatus.Call);
+
     global::MyNamespace.MyTestClass.MyTestMethod();
-    CallRecord_SnapTrace(null!, "MyTestMethod", null, context, global::SnapTrace.Runtime.Models.SnapStatus.Return);
+
+    var contextAfter = null;
+    CallRecord_SnapTrace(null!, "MyTestMethod", null, contextAfter, global::SnapTrace.Runtime.Models.SnapStatus.Return);
 }

@@ -1,2 +1,2 @@
-﻿namespace MyNamespace
+﻿namespace SnapTrace.Generated.MyNamespace
 {}

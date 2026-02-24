@@ -22,7 +22,7 @@ public class ClassInterceptorBuilderTests
     public Task Build_SimpleClass_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None);
+        var builder = new ClassInterceptorBuilder("MyNamespace", "MyClass", ClassSituation.None);
 
         // Act
         var actual = GetGeneratedOutput(builder.InternalBuild);
@@ -35,7 +35,7 @@ public class ClassInterceptorBuilderTests
     public Task Build_WithOneMethod_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None)
+        var builder = new ClassInterceptorBuilder("MyNamespace", "MyClass", ClassSituation.None)
             .WithMethod("MyMethod", MethodSituation.None, m => { });
 
         // Act
@@ -49,7 +49,7 @@ public class ClassInterceptorBuilderTests
     public Task Build_WithTwoMethods_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None)
+        var builder = new ClassInterceptorBuilder("MyNamespace", "MyClass", ClassSituation.None)
             .WithMethod("MyMethod1", MethodSituation.None, m => { })
             .WithMethod("MyMethod2", MethodSituation.None, m => { });
 
@@ -64,7 +64,7 @@ public class ClassInterceptorBuilderTests
     public Task Build_WithContext_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None)
+        var builder = new ClassInterceptorBuilder("MyNamespace", "MyClass", ClassSituation.None)
             .AddContextMember("_balance", "double")
             .AddContextMember("_name", "string");
 
@@ -79,7 +79,7 @@ public class ClassInterceptorBuilderTests
     public Task Build_WithGenerics_GeneratesCorrectly()
     {
         // Arrange
-        var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", ClassSituation.None)
+        var builder = new ClassInterceptorBuilder("MyNamespace", "MyClass", ClassSituation.None)
             .WithGenerics("<T>", "where T : class");
 
         // Act
@@ -97,7 +97,7 @@ public class ClassInterceptorBuilderTests
     public Task Build_WithSituation_GeneratesCorrectly(ClassSituation situation)
     {
         // Arrange
-        var builder = new ClassInterceptorBuilder("global::MyNamespace", "MyClass", situation);
+        var builder = new ClassInterceptorBuilder("MyNamespace", "MyClass", situation);
 
         // Act
         var actual = GetGeneratedOutput(builder.InternalBuild);

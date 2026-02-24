@@ -1,4 +1,5 @@
-﻿using global::SnapTrace;
+﻿#nullable enable
+using global::SnapTrace;
 
-namespace MyNamespace
+namespace SnapTrace.Generated.MyNamespace
 {}

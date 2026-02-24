@@ -1,6 +1,7 @@
-﻿using global::SnapTrace;
+﻿#nullable enable
+using global::SnapTrace;
 
-namespace TestApp
+namespace SnapTrace.Generated.TestApp
 {
     internal static class MyService_SnapTrace
     {
@@ -13,16 +14,19 @@ namespace TestApp
             return null;
         }
 
-        [global::System.Runtime.CompilerServices.InterceptsLocation(@"C:\\Tests\\TestProject.cs", 19, 21)]
+        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "ZKqIaLeH1sE3nL14oNQcbE8BAABDOlxUZXN0c1xUZXN0UHJvamVjdC5jcw==")]
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static void DoWork_SnapTrace_void_string(global::TestApp.MyService @this, string input)
+        public static void DoWork_SnapTrace_void_string(this global::TestApp.MyService @this, string input)
         {
             object? data = new object[] { /* input */ input };
-            var context = GetClassContext_SnapTrace(@this);
 
-            CallRecord_SnapTrace(null!, "DoWork", data, context, global::SnapTrace.Runtime.Models.SnapStatus.Call);
+            var contextBefore = GetClassContext_SnapTrace(@this);
+            CallRecord_SnapTrace(null!, "DoWork", data, contextBefore, global::SnapTrace.Runtime.Models.SnapStatus.Call);
+
             @this.DoWork(input);
-            CallRecord_SnapTrace(null!, "DoWork", null, context, global::SnapTrace.Runtime.Models.SnapStatus.Return);
+
+            var contextAfter = GetClassContext_SnapTrace(@this);
+            CallRecord_SnapTrace(null!, "DoWork", null, contextAfter, global::SnapTrace.Runtime.Models.SnapStatus.Return);
         }
     }
 }

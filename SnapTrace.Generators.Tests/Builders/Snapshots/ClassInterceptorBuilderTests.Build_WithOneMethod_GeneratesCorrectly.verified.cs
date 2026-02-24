@@ -10,13 +10,16 @@
     }
 
     [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void MyMethod_SnapTrace_void(global::MyNamespace.MyClass @this)
+    public static void MyMethod_SnapTrace_void(this global::MyNamespace.MyClass @this)
     {
         object? data = null;
-        var context = GetClassContext_SnapTrace(@this);
 
-        CallRecord_SnapTrace(null!, "MyMethod", data, context, global::SnapTrace.Runtime.Models.SnapStatus.Call);
+        var contextBefore = GetClassContext_SnapTrace(@this);
+        CallRecord_SnapTrace(null!, "MyMethod", data, contextBefore, global::SnapTrace.Runtime.Models.SnapStatus.Call);
+
         @this.MyMethod();
-        CallRecord_SnapTrace(null!, "MyMethod", null, context, global::SnapTrace.Runtime.Models.SnapStatus.Return);
+
+        var contextAfter = GetClassContext_SnapTrace(@this);
+        CallRecord_SnapTrace(null!, "MyMethod", null, contextAfter, global::SnapTrace.Runtime.Models.SnapStatus.Return);
     }
 }

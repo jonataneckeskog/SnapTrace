@@ -1,4 +1,4 @@
-﻿namespace MyNamespace
+﻿namespace SnapTrace.Generated.MyNamespace
 {
     internal static class MyClass1_SnapTrace
     {
