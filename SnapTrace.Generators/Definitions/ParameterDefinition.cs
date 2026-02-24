@@ -15,4 +15,5 @@ public record ParameterDefinition(
     string Modifier = "",
     bool IsParams = false,
     bool DeepCopy = false,
-    bool Redacted = false);
+    bool Redacted = false,
+    bool IsNonNullable = false);

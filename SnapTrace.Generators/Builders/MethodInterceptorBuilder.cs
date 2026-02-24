@@ -54,9 +54,9 @@ public class MethodInterceptorBuilder
         return this;
     }
 
-    public MethodInterceptorBuilder WithParameter(string name, string type, string modifier = "", bool isParams = false, bool deepCopy = false, bool redacted = false)
+    public MethodInterceptorBuilder WithParameter(string name, string type, string modifier = "", bool isParams = false, bool deepCopy = false, bool redacted = false, bool isNonNullable = false)
     {
-        _params.Add(new ParameterDefinition(name, type, modifier, isParams, deepCopy, redacted));
+        _params.Add(new ParameterDefinition(name, type, modifier, isParams, deepCopy, redacted, isNonNullable));
         return this;
     }
 
@@ -188,7 +188,7 @@ public class MethodInterceptorBuilder
 
         // 11. EXECUTE ORIGINAL AND CAPTURE RETURN
         var target = isMethodStatic ? targetType : "@this";
-        string callArgs = string.Join(", ", _params.Select(p => p.Name));
+        string callArgs = string.Join(", ", _params.Select(p => p.IsNonNullable ? $"{p.Name}!" : p.Name));
 
         if (_return.IsVoid)
         {
@@ -264,15 +264,5 @@ public class MethodInterceptorBuilder
             .Replace(" ", "")
             .Replace(".", "_")
             .TrimEnd('_');
-    }
-
-    private static bool IsValueType(string type)
-    {
-        if (type.StartsWith("(") || type == "int" || type == "long" || type == "bool" ||
-            type == "double" || type == "float" || type == "decimal" || type == "char" ||
-            type.Contains("ValueTuple"))
-            return true;
-
-        return false;
     }
 }

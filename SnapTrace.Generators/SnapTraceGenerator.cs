@@ -153,7 +153,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
 
                                 foreach (var p in methodInfo.Parameters)
                                 {
-                                    methodBuilder.WithParameter(p.Name, p.Type, p.Modifier, p.IsParams, p.DeepCopy, p.Redacted);
+                                    methodBuilder.WithParameter(p.Name, p.Type, p.Modifier, p.IsParams, p.DeepCopy, p.Redacted, p.IsNonNullable);
                                 }
 
                                 foreach (var call in methodGroup)
@@ -232,6 +232,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
             // Check for SnapTraceIgnore attribute
             bool paramRedacted = param.GetAttributes().Any(attr => 
                 SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.IgnoreAttribute));
+            bool isNonNullable = param.NullableAnnotation == NullableAnnotation.NotAnnotated;
 
             string paramType = param.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             string modifier = param.RefKind switch
@@ -248,7 +249,8 @@ public class SnapTraceGenerator : IIncrementalGenerator
                 modifier,
                 param.IsParams,
                 paramDeepCopy,
-                paramRedacted
+                paramRedacted,
+                isNonNullable
             ));
         }
 
