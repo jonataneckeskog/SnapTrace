@@ -155,7 +155,7 @@ public class MethodInterceptorBuilder
         writer.Indent++;
 
         // 8. Save method parameters to an object
-        writer.Write("object[] data = ");
+        writer.Write("object[]? data = ");
         if (_params.Count == 0)
         {
             writer.WriteLine("null;");

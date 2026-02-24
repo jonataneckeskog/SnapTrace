@@ -12,7 +12,7 @@
     [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void MyMethod_SnapTrace_void(this global::MyNamespace.MyClass @this)
     {
-        object[] data = null;
+        object[]? data = null;
 
         var contextBefore = GetClassContext_SnapTrace(@this);
         CallRecord_SnapTrace(null!, "MyMethod", data, contextBefore, global::SnapTrace.Runtime.Models.SnapStatus.Call);
