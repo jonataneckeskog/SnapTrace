@@ -1,4 +1,6 @@
-
+> [!CAUTION]
+> ## ⚠️ **DISCLAIMER: UNDER ACTIVE DEVELOPMENT**
+> **SnapTrace is currently in an early experimental stage.** The current version likely **will not work as intended**. Use of this library may result in **crashes, build errors, or unpredictable behavior** within your application. It is not yet recommended for any use beyond isolated experimentation.
 ---
 
 # SnapTrace 🛰️
@@ -39,10 +41,8 @@ public class BankService
     [SnapTrace] 
     private void SyncToDatabase() { }
 
-    // 8. Capture the full parameters and return value states without mutation, in this case only AccountId
-    //    since AccountService is ignored.
-    [SnapTraceDeep, return: SnapTraceIgnore]
-    public AccountService getAccountService(AccountId accountId)
+    // 8. Capture the parameter AccountId without mutation.
+    public AccountService getAccountService([SnapTraceDeep] AccountId accountId)
     {
         return _accountService;
     }
