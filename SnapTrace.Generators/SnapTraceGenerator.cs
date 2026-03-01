@@ -188,9 +188,11 @@ public class SnapTraceGenerator : IIncrementalGenerator
         bool returnRedacted = HasAttribute(methodSymbol, symbols.IgnoreAttribute) ||
                              methodSymbol.GetReturnTypeAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.IgnoreAttribute));
 
-        bool returnDeepCopy = !methodSymbol.ReturnsVoid &&
+        bool returnDeepCopy = (!methodSymbol.ReturnsVoid &&
                              !methodSymbol.ReturnType.IsValueType &&
-                             methodSymbol.ReturnType.SpecialType != SpecialType.System_String;
+                             methodSymbol.ReturnType.SpecialType != SpecialType.System_String) ||
+                             methodSymbol.GetReturnTypeAttributes().Any(a =>
+                                 SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.DeepAttribute));
 
         var parameters = new List<ParameterModel>();
         foreach (var param in methodSymbol.Parameters)

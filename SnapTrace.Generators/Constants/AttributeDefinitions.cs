@@ -39,11 +39,11 @@ namespace SnapTrace
     internal class SnapTraceContextAttribute : Attribute { }
 
     [Conditional(""SNAPTRACE"")]
-    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.ReturnValue, Inherited = false)]
     internal class SnapTraceIgnoreAttribute : Attribute { }
 
     [Conditional(""SNAPTRACE"")]
-    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Property | AttributeTargets.ReturnValue, Inherited = false)]
     internal class SnapTraceDeepAttribute : Attribute { }
 }
 ";
