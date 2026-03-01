@@ -3,4 +3,5 @@
   <Project Path="SnapTrace.Generators/SnapTrace.Generators.csproj" />
   <Project Path="SnapTrace.Runtime.Tests/SnapTrace.Runtime.Tests.csproj" />
   <Project Path="SnapTrace.Runtime/SnapTrace.Runtime.csproj" />
+  <Project Path="SnapTrace.Integration.Tests/SnapTrace.Integration.Tests.csproj" />
 </Solution>
