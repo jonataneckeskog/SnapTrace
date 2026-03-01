@@ -1,32 +1,31 @@
 ﻿#nullable enable
 using global::SnapTrace;
 
-namespace SnapTrace.Generated.TestApp
+namespace SnapTrace.Generated.MyNamespace
 {
-    internal static class MyService_SnapTrace
+    internal static class MyClass_SnapTrace
     {
         [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.StaticMethod, Name = "Record")]
         extern static void CallRecord_SnapTrace(global::SnapTrace.SnapTraceObserver? target, string method, object? data, object? context, global::SnapTrace.Runtime.Models.SnapStatus status);
 
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private static object? GetClassContext_SnapTrace(global::TestApp.MyService @this)
+        private static object? GetClassContext_SnapTrace(global::MyNamespace.MyClass @this)
         {
             return null;
         }
 
-        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "ZKqIaLeH1sE3nL14oNQcbE8BAABDOlxUZXN0c1xUZXN0UHJvamVjdC5jcw==")]
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static void DoWork_SnapTrace_void_string(this global::TestApp.MyService @this, string input)
+        public static async void MyTestMethod_SnapTrace_void(this global::MyNamespace.MyClass @this)
         {
-            object?[]? data = new object?[] { /* input */ ((object)input)?.ToString() ?? "null" };
+            object?[]? data = null;
 
             var contextBefore = GetClassContext_SnapTrace(@this);
-            CallRecord_SnapTrace(null!, "DoWork", data, contextBefore, global::SnapTrace.Runtime.Models.SnapStatus.Call);
+            CallRecord_SnapTrace(null!, "MyTestMethod", data, contextBefore, global::SnapTrace.Runtime.Models.SnapStatus.Call);
 
-            @this.DoWork(input);
+            @this.MyTestMethod();
 
             var contextAfter = GetClassContext_SnapTrace(@this);
-            CallRecord_SnapTrace(null!, "DoWork", null, contextAfter, global::SnapTrace.Runtime.Models.SnapStatus.Return);
+            CallRecord_SnapTrace(null!, "MyTestMethod", null, contextAfter, global::SnapTrace.Runtime.Models.SnapStatus.Return);
         }
     }
 }

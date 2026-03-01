@@ -21,7 +21,7 @@ namespace SnapTrace.Generated.TestApp
         [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static void UpdateUser_SnapTrace_void_string(this global::TestApp.UserService @this, string name)
         {
-            object[]? data = new object[] { /* name */ ((object)name)?.ToString() ?? "null" };
+            object?[]? data = new object?[] { /* name */ ((object)name)?.ToString() ?? "null" };
 
             var contextBefore = GetClassContext_SnapTrace(@this);
             CallRecord_SnapTrace(null!, "UpdateUser", data, contextBefore, global::SnapTrace.Runtime.Models.SnapStatus.Call);

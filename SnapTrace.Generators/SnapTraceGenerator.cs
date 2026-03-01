@@ -1,16 +1,15 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using SnapTrace.Generators.Builders;
-using SnapTrace.Generators.Definitions;
+using SnapTrace.Generators.Emitting;
 using SnapTrace.Generators.Models;
-using Microsoft.CodeAnalysis.CSharp;
 using SnapTrace.Generators.Constants;
-using System;
 
 namespace SnapTrace.Generators;
 
@@ -70,7 +69,6 @@ public class SnapTraceGenerator : IIncrementalGenerator
         var invocation = (InvocationExpressionSyntax)ctx.Node;
         var semanticModel = ctx.SemanticModel;
 
-        // Resolve Symbols for the current compilation
         var symbols = SnapTraceSymbols.Load(semanticModel.Compilation);
         if (!symbols.IsValid) return null;
 
@@ -92,16 +90,13 @@ public class SnapTraceGenerator : IIncrementalGenerator
 
 #pragma warning restore RSEXPERIMENTAL002
 
-        // ----------------------------------------
-
-        // Build Metadata
-        var classData = ExtractClassData(methodSymbol.ContainingType, symbols);
-        var methodData = ExtractMethodData(methodSymbol, symbols);
+        var classModel = ExtractClassData(methodSymbol.ContainingType, symbols);
+        var methodModel = ExtractMethodData(methodSymbol, symbols);
 
         return new InterceptedCall(
             interceptorAttributeString,
-            methodData,
-            classData
+            methodModel,
+            classModel
         );
     }
 
@@ -109,84 +104,60 @@ public class SnapTraceGenerator : IIncrementalGenerator
     {
         if (calls.IsDefaultOrEmpty) return;
 
-        var fileBuilder = new SourceFileBuilder();
+        var classModels = GroupInterceptedCalls(calls);
 
-        // Grouping: Namespace -> Class -> Method -> Locations
-        var byNamespace = calls.GroupBy(c => c.Class.Namespace);
-
-        foreach (var nsGroup in byNamespace)
+        foreach (var classModel in classModels)
         {
-            fileBuilder.WithNamespace(nsGroup.Key, nsBuilder =>
+            var source = InterceptorEmitter.Emit(classModel);
+            var ns = string.IsNullOrWhiteSpace(classModel.Namespace) ? "" : $"{classModel.Namespace}.";
+            spc.AddSource($"SnapTrace.{ns}{classModel.Name}.g.cs", SourceText.From(source, Encoding.UTF8));
+        }
+    }
+
+    private static IReadOnlyList<ClassModel> GroupInterceptedCalls(ImmutableArray<InterceptedCall> calls)
+    {
+        var result = new List<ClassModel>();
+
+        var byClass = calls.GroupBy(c => c.Class);
+
+        foreach (var classGroup in byClass)
+        {
+            var classInfo = classGroup.Key;
+
+            var methods = new List<MethodModel>();
+            var byMethod = classGroup.GroupBy(c => c.Method);
+
+            foreach (var methodGroup in byMethod)
             {
-                var byClass = nsGroup.GroupBy(c => c.Class);
-                foreach (var classGroup in byClass)
-                {
-                    var classInfo = classGroup.Key;
-                    nsBuilder.WithClass(classInfo.Name, classInfo.Situation, classBuilder =>
-                    {
-                        if (!string.IsNullOrEmpty(classInfo.TypeParameters))
-                        {
-                            classBuilder.WithGenerics(classInfo.TypeParameters, classInfo.WhereConstraints);
-                        }
+                var methodInfo = methodGroup.Key;
+                var locations = methodGroup.Select(c => c.InterceptorAttributeString).ToList();
 
-                        foreach (var ctxMember in classInfo.ContextMembers)
-                        {
-                            classBuilder.AddContextMember(ctxMember.Name, ctxMember.Type);
-                        }
+                methods.Add(methodInfo with { InterceptLocations = locations });
+            }
 
-                        var byMethod = classGroup.GroupBy(c => c.Method);
-                        foreach (var methodGroup in byMethod)
-                        {
-                            var methodInfo = methodGroup.Key;
-                            classBuilder.WithMethod(methodInfo.Name, methodInfo.Situation, methodBuilder =>
-                            {
-                                methodBuilder.WithReturn(
-                                    methodInfo.ReturnType,
-                                    methodInfo.DeepCopyReturn,
-                                    methodInfo.RedactedReturn
-                                );
-
-                                if (!string.IsNullOrEmpty(methodInfo.TypeParameters))
-                                {
-                                    methodBuilder.WithGenerics(methodInfo.TypeParameters, methodInfo.WhereConstraints);
-                                }
-
-                                foreach (var p in methodInfo.Parameters)
-                                {
-                                    methodBuilder.WithParameter(p.Name, p.Type, p.Modifier, p.IsParams, p.DeepCopy, p.Redacted, p.IsNonNullable);
-                                }
-
-                                foreach (var call in methodGroup)
-                                {
-                                    methodBuilder.AddLocation(call.InterceptorAttributeString);
-                                }
-                            });
-                        }
-                    });
-                }
-            });
+            result.Add(classInfo with { Methods = methods });
         }
 
-        spc.AddSource("SnapTrace.Interceptors.g.cs", SourceText.From(fileBuilder.Build(), Encoding.UTF8));
+        return result;
     }
 
     // --- Helper Methods ---
 
-    private static ClassData ExtractClassData(INamedTypeSymbol typeSymbol, SnapTraceSymbols symbols)
+    private static ClassModel ExtractClassData(INamedTypeSymbol typeSymbol, SnapTraceSymbols symbols)
     {
         var situation = ClassSituation.None;
         if (typeSymbol.IsStatic) situation |= ClassSituation.Static;
         if (typeSymbol.IsValueType) situation |= ClassSituation.IsStruct;
         if (typeSymbol.IsRefLikeType) situation |= ClassSituation.IsRefStruct;
 
-        var ctxMembers = new List<ContextMemberData>();
+        var ctxMembers = new List<ContextMemberModel>();
         foreach (var member in typeSymbol.GetMembers())
         {
             if (member is IFieldSymbol or IPropertySymbol && HasAttribute(member, symbols.ContextAttribute))
             {
                 string memberType = member is IFieldSymbol fs ? fs.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
                                                               : ((IPropertySymbol)member).Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                ctxMembers.Add(new ContextMemberData(member.Name, memberType));
+                ctxMembers.Add(new ContextMemberModel(member.Name, memberType));
             }
         }
 
@@ -194,18 +165,19 @@ public class SnapTraceGenerator : IIncrementalGenerator
             ? $"<{string.Join(", ", typeSymbol.TypeParameters.Select(t => t.Name))}>"
             : "";
 
-        return new ClassData(
+        return new ClassModel(
             Namespace: typeSymbol.ContainingNamespace.IsGlobalNamespace ? "" : typeSymbol.ContainingNamespace.ToDisplayString(),
             Name: typeSymbol.Name,
             FullyQualifiedName: typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             Situation: situation,
             TypeParameters: typeParams,
-            WhereConstraints: "", // Populate constraints if needed via typeSymbol.TypeParameters bounds
-            ContextMembers: ctxMembers
+            WhereConstraints: "",
+            ContextMembers: ctxMembers,
+            Methods: Array.Empty<MethodModel>()
         );
     }
 
-    private static MethodData ExtractMethodData(IMethodSymbol methodSymbol, SnapTraceSymbols symbols)
+    private static MethodModel ExtractMethodData(IMethodSymbol methodSymbol, SnapTraceSymbols symbols)
     {
         var situation = MethodSituation.None;
         if (methodSymbol.IsStatic) situation |= MethodSituation.Static;
@@ -213,24 +185,22 @@ public class SnapTraceGenerator : IIncrementalGenerator
         if (methodSymbol.ReturnsByRef) situation |= MethodSituation.ReturnsRef;
         if (methodSymbol.ReturnsByRefReadonly) situation |= MethodSituation.ReturnsRefReadonly;
 
-        // 1. Check Return Attributes
         bool returnRedacted = HasAttribute(methodSymbol, symbols.IgnoreAttribute) ||
                              methodSymbol.GetReturnTypeAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.IgnoreAttribute));
 
-        // 2. Determine if the return value should be DeepCopied
-        bool returnDeepCopy = !methodSymbol.ReturnsVoid &&
+        bool returnDeepCopy = (!methodSymbol.ReturnsVoid &&
                              !methodSymbol.ReturnType.IsValueType &&
-                             methodSymbol.ReturnType.SpecialType != SpecialType.System_String;
+                             methodSymbol.ReturnType.SpecialType != SpecialType.System_String) ||
+                             methodSymbol.GetReturnTypeAttributes().Any(a =>
+                                 SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.DeepAttribute));
 
-        var parameters = new List<ParameterData>();
+        var parameters = new List<ParameterModel>();
         foreach (var param in methodSymbol.Parameters)
         {
-            // Check for SnapTraceDeep attribute
-            bool paramDeepCopy = param.GetAttributes().Any(attr => 
+            bool paramDeepCopy = param.GetAttributes().Any(attr =>
                 SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.DeepAttribute));
-            
-            // Check for SnapTraceIgnore attribute
-            bool paramRedacted = param.GetAttributes().Any(attr => 
+
+            bool paramRedacted = param.GetAttributes().Any(attr =>
                 SymbolEqualityComparer.Default.Equals(attr.AttributeClass, symbols.IgnoreAttribute));
             bool isNonNullable = param.NullableAnnotation == NullableAnnotation.NotAnnotated;
 
@@ -243,7 +213,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
                 _ => ""
             };
 
-            parameters.Add(new ParameterData(
+            parameters.Add(new ParameterModel(
                 param.Name,
                 paramType,
                 modifier,
@@ -258,7 +228,7 @@ public class SnapTraceGenerator : IIncrementalGenerator
             ? $"<{string.Join(", ", methodSymbol.TypeParameters.Select(t => t.Name))}>"
             : "";
 
-        return new MethodData(
+        return new MethodModel(
             Name: methodSymbol.Name,
             ReturnType: methodSymbol.ReturnsVoid ? "void" : methodSymbol.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             IsVoid: methodSymbol.ReturnsVoid,
@@ -267,7 +237,8 @@ public class SnapTraceGenerator : IIncrementalGenerator
             WhereConstraints: "",
             Parameters: parameters,
             DeepCopyReturn: returnDeepCopy,
-            RedactedReturn: returnRedacted
+            RedactedReturn: returnRedacted,
+            InterceptLocations: Array.Empty<string>()
         );
     }
 

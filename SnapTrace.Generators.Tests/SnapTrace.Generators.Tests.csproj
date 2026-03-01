@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Builders/Snapshots/**/*.cs" />
+    <Compile Remove="Emitting/Snapshots/**/*.cs" />
     <Compile Remove="SnapTraceGenerator/Snapshots/**/*.cs" />
     <Compile Remove="SnapTraceGenerator/Resources/**/*.cs" />
   </ItemGroup>
