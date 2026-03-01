@@ -212,14 +212,14 @@ internal static class InterceptorEmitter
         w.Indent++;
 
         // Parameter data array
-        w.Write("object[]? data = ");
+        w.Write("object?[]? data = ");
         if (method.Parameters.Count == 0)
         {
             w.WriteLine("null;");
         }
         else
         {
-            w.Write("new object[] { ");
+            w.Write("new object?[] { ");
             var arrayParts = method.Parameters.Select(p =>
             {
                 if (p.Redacted)
